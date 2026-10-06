@@ -6,7 +6,7 @@ La interfaz usa cristal esmerilado en navegación, pedido y diálogos, con texto
 
 ### Flujos rápidos
 
-Los accesos aceptan **correo o usuario y contraseña**. Crea primero al propietario desde la aplicación local conectada a Supabase; después entra a **Más opciones → Equipo → Agregar persona** para crear cajeros o propietarios. Usa contraseñas de al menos 10 caracteres. El correo funciona como identificador del POS: no se envían invitaciones ni códigos por correo, y estos accesos no se crean desde Supabase Auth.
+Los accesos aceptan **correo o usuario y contraseña**, y **Continuar con Google** cuando está configurado Supabase Auth. Crea primero al propietario desde la aplicación local conectada a Supabase; después entra a **Más opciones → Equipo → Agregar persona** para crear cajeros o propietarios. Usa contraseñas de al menos 10 caracteres. Para Google registra el correo de esa cuenta: solo los usuarios activos ya autorizados en el POS pueden entrar. Google no crea propietarios ni cajeros automáticamente. No se envían invitaciones ni códigos por correo.
 
 - Venta con búsqueda sin acentos, seis categorías y 33 tarjetas que agrupan las 60 variantes del menú del cliente. Las botellas se eligen por presentación; las escarchas por tamaño y sabor; los bolos por sabor. El acceso inferior abre el pedido o permite ir directo al cobro.
 - Pago con botón **Exacto**, importes frecuentes, vuelto visible y **Nueva venta** desde el comprobante.

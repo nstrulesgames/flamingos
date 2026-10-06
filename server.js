@@ -4,8 +4,9 @@ import { fileURLToPath } from 'node:url';
 import { resolve, extname } from 'node:path';
 import { createStore, AppError, assert } from './lib/store.js';
 import { createPostgresStore } from './lib/postgres-store.js';
+import { createGoogleAuth } from './lib/google-auth.js';
 const root = fileURLToPath(new URL('.', import.meta.url));
-export function createApp({ database = resolve(root, 'data/flamingo.sqlite'), demo = false, secure = false, catalog = 'client', store: providedStore, allowSetup = true } = {}) {
+export function createApp({ database = resolve(root, 'data/flamingo.sqlite'), demo = false, secure = false, catalog = 'client', store: providedStore, allowSetup = true, googleAuth } = {}) {
     const store = providedStore ?? createStore(database, { demo, catalog });
     const attempts = new Map();
     const handler = async (req, res) => {
@@ -50,9 +51,29 @@ export function createApp({ database = resolve(root, 'data/flamingo.sqlite'), de
                 assert(body && typeof body === 'object' && !Array.isArray(body), 'Cuerpo inválido.');
             }
             const route = `${req.method} ${url.pathname}`;
+            if (route === 'GET /api/auth/google/start') {
+                assert(googleAuth && store.loginGoogle, 'El acceso con Google no está configurado.', 503);
+                const result = await googleAuth.start(req);
+                res.writeHead(303, { Location: result.url, 'Set-Cookie': result.cookie, 'Cache-Control': 'no-store' });
+                return res.end();
+            }
+            if (route === 'GET /api/auth/google/callback') {
+                assert(googleAuth && store.loginGoogle, 'El acceso con Google no está configurado.', 503);
+                try {
+                    const email = await googleAuth.finish(req, url);
+                    const result = await store.loginGoogle({ email });
+                    res.setHeader('Set-Cookie', [googleAuth.clearCookie(), `flamingo_session=${result.token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=43200${secure ? '; Secure' : ''}`]);
+                    res.writeHead(303, { Location: `${googleAuth.origin}/`, 'Cache-Control': 'no-store' });
+                    return res.end();
+                } catch (error) {
+                    const reason = error instanceof AppError && error.status === 403 ? 'unauthorized' : 'failed';
+                    res.writeHead(303, { Location: `${googleAuth.origin}/?google_error=${reason}`, 'Set-Cookie': googleAuth.clearCookie(), 'Cache-Control': 'no-store' });
+                    return res.end();
+                }
+            }
             const token = req.headers.cookie?.split(';').map(s => s.trim()).find(s => s.startsWith('flamingo_session='))?.slice(17);
             if (route === 'GET /api/status')
-                return json({ setup: await store.isSetup(), demo, database: store.backend || 'sqlite' });
+                return json({ setup: await store.isSetup(), demo, database: store.backend || 'sqlite', google: !!googleAuth });
             if (route === 'POST /api/setup') {
                 // Bootstrap is local-only; create the owner before exposing the service.
                 assert(allowSetup && ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress), 'Configura el propietario desde el servidor local.', 403);
@@ -144,7 +165,7 @@ export function createHostedHandler({ environment = process.env, storeFactory = 
             if (!appPromise) {
                 appPromise = Promise.resolve().then(async () => {
                     const store = await storeFactory(connectionString);
-                    return createApp({ store, secure: true, allowSetup: false });
+                    return createApp({ store, secure: true, allowSetup: false, googleAuth: createGoogleAuth(environment) });
                 }).catch(error => { appPromise = undefined; throw error; });
             }
             const app = await appPromise;

@@ -1,5 +1,13 @@
 # Validación de Flamingo’s
 
+## Acceso con Google — 6 de octubre de 2026
+
+- 51 pruebas pasan: el SDK oficial genera PKCE y verifica el usuario contra Supabase Auth; las pruebas de callback comprueban cookie temporal, código de un solo uso, ausencia de tokens del proveedor en el navegador y retorno seguro.
+- PostgreSQL solo emite sesión para correos existentes y activos, conserva el rol del POS y rechaza desconocidos o desactivados. Los roles sugeridos por metadatos no se usan.
+- El proveedor Google está activo en el proyecto y el inicio real de OAuth respondió 302 hacia `accounts.google.com`, sin elegir una cuenta ni registrar usuarios del negocio.
+- El paquete de Vercel incluye el módulo Google y excluye credenciales y datos locales. La activación del botón queda pendiente de confirmar las Redirect URLs y crear el propietario desde la aplicación local; `GOOGLE_AUTH_ENABLED=false` permite publicar el código sin activar ese flujo.
+- El consentimiento y el acceso completo con una cuenta real de Google requieren una prueba manual posterior. El código no crea al propietario automáticamente.
+
 ## Integración PostgreSQL — 6 de octubre de 2026
 
 - Aplicadas y verificadas en Supabase (`oozvdybbdajbmfwikczt`, cuenta `nstrulesgames`) las migraciones iniciales: 18 tablas con RLS, 60 productos, 37 elementos de inventario, stock cero, cero usuarios y cero ventas.

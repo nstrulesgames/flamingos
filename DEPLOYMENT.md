@@ -4,6 +4,23 @@ La aplicación puede ejecutarse localmente y publicarse en Vercel con Supabase. 
 
 ## Requisitos del servidor
 
+### Acceso con Google
+
+Configura Google en **Supabase → Authentication → Providers → Google**, con el Client ID y Client Secret de Google Cloud. El secreto de Google se guarda allí, no en el código, ni en Vercel, ni en el navegador. La URI de Google Cloud es `https://oozvdybbdajbmfwikczt.supabase.co/auth/v1/callback`.
+
+En **Authentication → URL Configuration**, usa Site URL `https://flamingos-psi.vercel.app` y autoriza estas Redirect URLs exactas:
+
+- `https://flamingos-psi.vercel.app/api/auth/google/callback`
+- `http://127.0.0.1:3000/api/auth/google/callback` para desarrollo local.
+
+El servidor necesita `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` y `PUBLIC_APP_URL`. Para producción, `PUBLIC_APP_URL=https://flamingos-psi.vercel.app`; localmente, `http://127.0.0.1:3000`. Usa `GOOGLE_AUTH_ENABLED=false` hasta confirmar las Redirect URLs y después `true`, reiniciando o desplegando nuevamente. La clave publishable no es una credencial administrativa. No uses una service-role key.
+
+El SDK oficial usa PKCE con una cookie temporal HttpOnly, SameSite=Lax y Secure en HTTPS, de 10 minutos. El servidor valida al usuario contra Supabase Auth y comprueba el correo de la identidad Google verificada. Después consulta la cuenta activa existente en `flamingo.users`; los permisos proceden del POS, nunca de `user_metadata`. No hay alta automática ni modificación de rol. Los tokens de Supabase o de Google no se guardan en el navegador: el POS emite su propia sesión HttpOnly de 12 horas.
+
+Crear usuarios en Supabase Auth no otorga acceso al POS. El propietario debe registrarlos en Equipo con el mismo correo. Desactivar una persona en Equipo invalida también su acceso por Google y sus sesiones del POS. La gestión de usuarios de Supabase Auth no reemplaza la gestión del equipo del negocio.
+
+El botón aparece cuando existe el propietario y el servidor tiene configuración Google. Se mantiene correo/usuario y contraseña como alternativa. Las URL de despliegues de Preview no usan el botón de producción: el acceso se inicia desde el dominio principal autorizado.
+
 ### Vercel con Supabase
 
 El repositorio incluye `vercel.json` y una función en `api/index.js`. Vercel sirve `public/` como archivos estáticos y dirige `/api/*` a esa función, sin abrir un archivo SQLite ni iniciar un servidor local. La conexión PostgreSQL se reutiliza dentro de cada instancia. La función incluye el certificado público de Supabase y la región `iad1`, próxima a la base en us-east-1.

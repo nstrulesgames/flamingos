@@ -36,7 +36,7 @@ test('hosting: simultaneous cold requests share initialization and prefer the li
   const responses = await Promise.all(Array.from({ length: 4 }, () => fetch(`${base}/api/status`)));
   for (const response of responses) {
     assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), { setup: true, demo: false, database: 'postgres' });
+    assert.deepEqual(await response.json(), { setup: true, demo: false, database: 'postgres', google: false });
   }
   assert.equal(connections, 1);
   assert.equal(supplied, environment.FLAMINGO_DATABASE_URL);

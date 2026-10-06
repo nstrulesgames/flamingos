@@ -72,3 +72,4 @@ button:disabled{opacity:.55}h1{font-size:28px;letter-spacing:-.8px}h2{letter-spa
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}button:active:not(:disabled){transform:none}}
 @media(prefers-reduced-transparency:reduce){.sidebar,.topbar,.order-panel,.mobile-nav,.modal{background:#fffcf7;backdrop-filter:none!important}.modal::backdrop{backdrop-filter:none}}
 @media print{body{background:#fff}.modal{background:#fff;backdrop-filter:none;box-shadow:none}.receipt,.receipt strong{color:#000}}
+.google-access{margin-top:20px;display:grid;gap:10px}.google-access>p{margin:0;text-align:center;font-size:13px}.google-access>.full{width:100%;min-height:48px}

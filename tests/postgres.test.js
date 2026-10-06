@@ -64,6 +64,18 @@ test('PostgreSQL: email owner and workers can log in without duplicating differe
   await assert.rejects(store.createUser(owner,{name:'Inválida',username:'persona@correo..com',password,role:'cashier'}),/correo electrónico válido/);
 });
 
+test('PostgreSQL: Google only grants existing active accounts and ignores claimed roles', async t => {
+  const {store,owner}=await fixture(t);
+  await assert.rejects(store.loginGoogle({email:'stranger@example.com',role:'admin'}),/no tiene acceso/);
+  const worker=await store.createUser(owner,{name:'Google cashier',username:'Cashier@example.com',password:'ClaveSegura2026!',role:'cashier'});
+  const session=await store.loginGoogle({email:'CASHIER@EXAMPLE.COM',role:'admin'});
+  assert.equal(session.user.id,worker.id);assert.equal(session.user.role,'cashier');
+  assert.equal((await store.authenticate(session.token)).role,'cashier');
+  await store.updateUser(owner,worker.id,{active:false});
+  assert.equal(await store.authenticate(session.token),undefined);
+  await assert.rejects(store.loginGoogle({email:'cashier@example.com'}),/no tiene acceso/);
+});
+
 test('PostgreSQL: initial setup, catalog, password sessions and minimum database privileges', async t => {
   const { store, db } = await fixture(t, false);
   assert.equal(await store.isSetup(), false);
