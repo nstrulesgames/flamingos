@@ -52,6 +52,18 @@ async function fixture(t, setup = true) {
   return { store, db, pool, owner, worker, product, itemId, open, sale };
 }
 
+test('PostgreSQL: email owner and workers can log in without duplicating differently-cased identifiers', async t => {
+  const {store}=await fixture(t,false);
+  const email='Owner.Name+POS@flamingos-establecimiento.example',password='ClaveDePrueba2026!';
+  const owner=await store.setup({name:'Propietaria',username:email,password});
+  assert.equal(owner.username,email.toLowerCase());
+  assert.equal((await store.login({username:` ${email.toUpperCase()} `,password})).user.id,owner.id);
+  const worker=await store.createUser(owner,{name:'Cajera',username:'Caja@flamingos.example',password,role:'cashier'});
+  assert.equal((await store.login({username:'CAJA@FLAMINGOS.EXAMPLE',password})).user.id,worker.id);
+  await assert.rejects(store.createUser(owner,{name:'Duplicada',username:email.toUpperCase(),password,role:'cashier'}),/ya existe/);
+  await assert.rejects(store.createUser(owner,{name:'Inválida',username:'persona@correo..com',password,role:'cashier'}),/correo electrónico válido/);
+});
+
 test('PostgreSQL: initial setup, catalog, password sessions and minimum database privileges', async t => {
   const { store, db } = await fixture(t, false);
   assert.equal(await store.isSetup(), false);

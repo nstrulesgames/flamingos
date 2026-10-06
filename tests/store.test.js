@@ -39,6 +39,20 @@ test('bootstrap creates a real owner and a catalog with no invented stock',t=>{
   const login=store.login({username:'owner',password:'suficientementelarga'});
   assert.equal(store.authenticate(login.token).id,owner.id);store.logout(login.token);assert.equal(store.authenticate(login.token),undefined);
 });
+test('email identifiers support owner setup, cashier creation and case-insensitive login',t=>{
+  const store=createStore(':memory:');t.after(()=>store.close());
+  const email='Owner.Name+POS@flamingos-establecimiento.example';
+  const password='ClaveDePrueba2026!';
+  const owner=store.setup({name:'Propietaria',username:email,password});
+  assert.equal(owner.username,email.toLowerCase());
+  assert.equal(store.login({username:` ${email.toUpperCase()} `,password}).user.id,owner.id);
+  const worker=store.createUser(owner,{name:'Cajera',username:'Caja@flamingos.example',password,role:'cashier'});
+  assert.equal(store.login({username:'CAJA@FLAMINGOS.EXAMPLE',password}).user.id,worker.id);
+  assert.throws(()=>store.createUser(owner,{name:'Duplicada',username:email.toUpperCase(),password,role:'cashier'}),/ya existe/);
+  for(const username of ['persona@','persona@@correo.com','persona@correo..com','.persona@correo.com','persona..dos@correo.com'])
+    assert.throws(()=>store.createUser(owner,{name:'Inválida',username,password,role:'cashier'}),/correo electrónico válido/);
+});
+
 test('cash sale is atomic, authoritative, updates stock and computes change',t=>{
   const {store,owner,sale}=fixture(t);open(store,owner,10000);
   const before=store.snapshot(owner).inventory.find(i=>i.id===5).stock;
