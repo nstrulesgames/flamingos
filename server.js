@@ -19,7 +19,7 @@ export function createApp({ database = resolve(root, 'data/flamingo.sqlite'), de
             const url = new URL(req.url, 'http://localhost');
             if (!url.pathname.startsWith('/api/')) {
                 assert(req.method === 'GET' || req.method === 'HEAD', 'Método no permitido.', 405);
-                const files = { '/': 'index.html', '/app.js': 'app.js', '/catalog.js': 'catalog.js', '/reconciliation.js': 'reconciliation.js', '/style.css': 'style.css', '/reconciliation.css': 'reconciliation.css', '/glass.css': 'glass.css', '/mobile.css': 'mobile.css', '/menu-art.svg': 'menu-art.svg', '/art.svg': 'art.svg', '/logo.png': 'logo.png', '/manifest.webmanifest': 'manifest.webmanifest', '/icon.svg': 'icon.svg' };
+                const files = { '/': 'index.html', '/app.js': 'app.js', '/catalog.js': 'catalog.js', '/reconciliation.js': 'reconciliation.js', '/style.css': 'style.css', '/reconciliation.css': 'reconciliation.css', '/glass.css': 'glass.css', '/mobile.css': 'mobile.css', '/theme.js': 'theme.js', '/theme.css': 'theme.css', '/menu-art.svg': 'menu-art.svg', '/art.svg': 'art.svg', '/logo.png': 'logo.png', '/manifest.webmanifest': 'manifest.webmanifest', '/icon.svg': 'icon.svg' };
                 const file = files[url.pathname];
                 assert(file, 'Archivo no encontrado.', 404);
                 const content = await readFile(resolve(root, 'public', file));

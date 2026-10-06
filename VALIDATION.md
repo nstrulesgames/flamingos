@@ -119,3 +119,12 @@ Las 44 pruebas automatizadas pasan, incluidas cinco pruebas HTTP del adaptador: 
 - Contraste medido: texto blanco del acceso sobre rojo 4,82:1, botones primarios 5,71:1 y detalle del catálogo 6,69:1. La copia secundaria del acceso se corrigió de 3,58:1 a 4,82:1.
 - Falta prueba física del teclado virtual y tacto en iOS/Android: se verificó foco DOM y tamaños de viewport, que no equivalen a hardware real.
 
+
+## Dos apariencias de cristal · 6 de octubre de 2026
+
+- Pasaron las 56 pruebas y la revisión de sintaxis. Las cinco pruebas nuevas cubren la preferencia del sistema, restauración, almacenamiento bloqueado, cambios entre pestañas y valores no admitidos.
+- Navegador a 320, 390, 480 y 768px: venta, resumen, turnos y Más en ambos modos sin desbordamiento horizontal. A 768px se mantiene la composición de 480px. Inventario, historial y equipo también se revisaron en oscuro.
+- Demostración SQLite separada en puerto 3002, archivo test-results/cristal-ui-demo.sqlite: fondo Bs 100, Coca-Cola 300 ml por Bs 5, recibidos Bs 20, vuelto Bs 15. Declaración completa de 37 insumos con Bs 105 y aprobación sin diferencias. No se modificó Supabase.
+- Borrador conservado al cerrar el conteo, cambiar de modo y reabrir; selección oscura restaurada tras recargar. Campos de conteo legibles a 320px, progreso y foco en ambos temas. Se comprobó el cobro oscuro y la revisión del propietario.
+- Contraste de paletas sobre superficie sólida: texto principal 13,98:1 claro / 13,82:1 oscuro; secundario 6,27:1 / 8,14:1; botón principal 5:1 / 8,34:1. Estados de éxito, aviso y error mayores a 5,6:1. Estas medidas son de los colores base; la inspección visual también revisó los paneles translúcidos.
+- Evidencia: test-results/cristal-pos-light.jpg, cristal-pos-dark.jpg y cristal-count-light.jpg, con datos de demostración. Continúa pendiente la prueba física de teclado y tacto en iOS/Android.
