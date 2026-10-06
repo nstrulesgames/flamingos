@@ -6,3 +6,4 @@ data/
 *.log
 test-results/
 design-references/
+.vercel/

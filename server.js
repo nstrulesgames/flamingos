@@ -4,12 +4,11 @@ import { fileURLToPath } from 'node:url';
 import { resolve, extname } from 'node:path';
 import { createStore, AppError, assert } from './lib/store.js';
 import { createPostgresStore } from './lib/postgres-store.js';
-import { existsSync } from 'node:fs';
 const root = fileURLToPath(new URL('.', import.meta.url));
-export function createApp({ database = resolve(root, 'data/flamingo.sqlite'), demo = false, secure = false, catalog = 'client', store: providedStore } = {}) {
+export function createApp({ database = resolve(root, 'data/flamingo.sqlite'), demo = false, secure = false, catalog = 'client', store: providedStore, allowSetup = true } = {}) {
     const store = providedStore ?? createStore(database, { demo, catalog });
     const attempts = new Map();
-    const server = http.createServer(async (req, res) => {
+    const handler = async (req, res) => {
         res.setHeader('X-Content-Type-Options', 'nosniff');
         res.setHeader('Referrer-Policy', 'same-origin');
         res.setHeader('X-Frame-Options', 'DENY');
@@ -56,7 +55,7 @@ export function createApp({ database = resolve(root, 'data/flamingo.sqlite'), de
                 return json({ setup: await store.isSetup(), demo, database: store.backend || 'sqlite' });
             if (route === 'POST /api/setup') {
                 // Bootstrap is local-only; create the owner before exposing the service.
-                assert(['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress), 'Configura el propietario desde el servidor local.', 403);
+                assert(allowSetup && ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress), 'Configura el propietario desde el servidor local.', 403);
                 await store.setup(body);
                 return json({ ok: true }, 201);
             }
@@ -131,21 +130,30 @@ export function createApp({ database = resolve(root, 'data/flamingo.sqlite'), de
             else
                 res.end();
         }
-    });
-    return { server, store };
+    };
+    const server = http.createServer(handler);
+    return { server, store, handler };
 }
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-    if (existsSync(resolve(root, '.env')))
-        process.loadEnvFile(resolve(root, '.env'));
-    if (existsSync(resolve(root, '.env.runtime')))
-        process.loadEnvFile(resolve(root, '.env.runtime'));
-    const demo = process.argv.includes('--demo');
-    const port = Number(process.env.PORT || 3000), host = process.env.HOST || '127.0.0.1';
-    const connectionString = process.env.FLAMINGO_DATABASE_URL || process.env.DATABASE_URL;
-    assert(!(!demo && process.env.DATABASE_BACKEND === 'postgres' && !connectionString), 'Falta DATABASE_URL para conectar PostgreSQL.', 503);
-    const suppliedStore = !demo && connectionString ? await createPostgresStore(connectionString) : undefined;
-    const { server, store } = createApp({ demo, store: suppliedStore, database: process.env.DATABASE_PATH || resolve(root, 'data', demo ? 'demo.sqlite' : 'flamingo.sqlite'), secure: process.env.COOKIE_SECURE === 'true' });
-    server.listen(port, host, () => console.log(`Flamingo's POS: http://${host}:${port} ${demo ? '[DEMOSTRACIÓN SQLITE]' : suppliedStore ? '[SUPABASE / POSTGRESQL]' : '[SQLITE]'}`));
-    for (const signal of ['SIGINT', 'SIGTERM'])
-        process.on(signal, () => server.close(async () => { await store.close(); process.exit(0); }));
+// Vercel imports a handler; it must never open a SQLite file or listen on a port.
+export function createHostedHandler({ environment = process.env, storeFactory = createPostgresStore, logger = console } = {}) {
+    let appPromise;
+    return async (req, res) => {
+        try {
+            const connectionString = environment.FLAMINGO_DATABASE_URL || environment.DATABASE_URL;
+            assert(connectionString, 'Falta FLAMINGO_DATABASE_URL en las variables de entorno del despliegue.', 503);
+            if (!appPromise) {
+                appPromise = Promise.resolve().then(async () => {
+                    const store = await storeFactory(connectionString);
+                    return createApp({ store, secure: true, allowSetup: false });
+                }).catch(error => { appPromise = undefined; throw error; });
+            }
+            const app = await appPromise;
+            await app.handler(req, res);
+        } catch (error) {
+            // Log only classifications: drivers may put connection secrets in messages.
+            logger.error('Flamingo: fallo de inicialización', { name: error.name, code: error.code || 'CONFIGURATION_OR_DATABASE' });
+            res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
+            res.end(JSON.stringify({ error: error instanceof AppError ? error.message : 'No se pudo conectar con la base de datos. Revisa la conexión PostgreSQL del despliegue.' }));
+        }
+    };
 }

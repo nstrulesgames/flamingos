@@ -95,3 +95,9 @@ Validación manual en la base de demostración:
 
 Evidencia en `test-results/glass-arqueo-mobile.jpg`, `glass-admin-mobile.jpg`, `glass-pos-tablet-portrait.jpg`, `glass-pos-tablet.jpg` y `glass-pos-desktop.jpg`. Las capturas contienen datos de prueba. Pendiente prueba de teclado virtual y respuesta táctil en hardware iOS/Android; la emulación de viewport no verifica esos comportamientos.
 
+# Adaptación para Vercel — 6 de octubre de 2026
+
+Las 44 pruebas automatizadas pasan, incluidas cinco pruebas HTTP del adaptador: falta de conexión con respuesta 503, inicialización compartida entre peticiones simultáneas, cookies Secure, bloqueo del alta inicial incluso desde loopback y recuperación después de un fallo transitorio sin revelar mensajes del driver. La entrada alojada también respondió HTTP 200 con `database: postgres` usando Supabase real, sin modificar datos del negocio.
+
+`vercel build --prod` generó el frontend estático y una función Node.js 24 para `/api/*`. El paquete excluye `.env*` y `data/`; el certificado público figura en `filePathMap`, que Vercel incorpora al desplegar. El arranque local y la carga de archivos de entorno están separados en `start.js`.
+

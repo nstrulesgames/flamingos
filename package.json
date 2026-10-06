@@ -5,16 +5,16 @@
   "type": "module",
   "description": "Punto de venta, inventario y arqueos de Flamingo's",
   "engines": {
-    "node": ">=24.14.0"
+    "node": ">=24.14.0 <25"
   },
   "scripts": {
-    "start": "node server.js",
-    "demo": "node server.js --demo",
+    "start": "node start.js",
+    "demo": "node start.js --demo",
     "backup": "node scripts/backup.js",
     "db:check": "node scripts/check-database.js",
     "db:configure": "node scripts/configure-database-role.js",
     "test": "node --test tests/*.test.js",
-    "check": "node --check server.js && node --check lib/store.js && node --check lib/postgres-store.js && node --check lib/postgres-db.js && node --check lib/postgres-backup.js && node --check lib/menu.js && node --check scripts/backup.js && node --check scripts/database-config.js && node --check scripts/check-database.js && node --check scripts/configure-database-role.js && node --check public/catalog.js && node --check public/app.js && node --check public/reconciliation.js"
+    "check": "node --check start.js && node --check api/index.js && node --check server.js && node --check lib/store.js && node --check lib/postgres-store.js && node --check lib/postgres-db.js && node --check lib/postgres-backup.js && node --check lib/menu.js && node --check scripts/backup.js && node --check scripts/database-config.js && node --check scripts/check-database.js && node --check scripts/configure-database-role.js && node --check public/catalog.js && node --check public/app.js && node --check public/reconciliation.js"
   },
   "dependencies": {
     "pg": "^8.23.1"

@@ -1,8 +1,32 @@
 # Publicación y operación
 
-La aplicación está implementada y se puede ejecutar localmente. No se contrató hosting, no se configuró un dominio y no se publicó información del negocio.
+La aplicación puede ejecutarse localmente y publicarse en Vercel con Supabase. Las credenciales y los datos locales quedan fuera del código publicado.
 
 ## Requisitos del servidor
+
+### Vercel con Supabase
+
+El repositorio incluye `vercel.json` y una función en `api/index.js`. Vercel sirve `public/` como archivos estáticos y dirige `/api/*` a esa función, sin abrir un archivo SQLite ni iniciar un servidor local. La conexión PostgreSQL se reutiliza dentro de cada instancia. La función incluye el certificado público de Supabase y la región `iad1`, próxima a la base en us-east-1.
+
+En **Settings → Environment Variables**, configura para **Production** (y Preview solo si vas a probar con una base de ensayo):
+
+| Variable | Valor |
+| --- | --- |
+| `FLAMINGO_DATABASE_URL` | Conexión limitada que generó `npm run db:configure`, guardada en `.env.runtime`. Copia únicamente el valor, sin el nombre ni comillas. |
+| `DATABASE_BACKEND` | `postgres` |
+| `COOKIE_SECURE` | `true` |
+
+La conexión es PostgreSQL del pooler de Supabase, no `https://...supabase.co` ni una clave `anon`. Los archivos `.env` de tu equipo no se suben a GitHub ni se transfieren automáticamente a Vercel. Para este proyecto se verificó el pooler de sesión `aws-0-us-east-1.pooler.supabase.com:5432`; usa la credencial limitada ya preparada.
+
+Usa Node.js **24.x**, Framework Preset **Other**, directorio raíz del repositorio e instalación `npm ci`. No configures `npm start` como Build Command. El código fija el directorio de salida en `public`; no necesita compilación. Haz **Redeploy** después de cambiar variables: un despliegue existente no recibe esas variables nuevas.
+
+Crea primero el propietario desde `http://127.0.0.1:3000/`, conectado a la misma base de Supabase. El alta está bloqueada en Vercel incluso si la plataforma reenvía una petición mediante localhost.
+
+Comprueba `/api/status`: debe responder HTTP 200 con `database: "postgres"` y `setup: true` cuando ya exista el propietario. Si falta la conexión, responde 503 indicando el nombre de la variable; si falla PostgreSQL, los Logs muestran la clasificación del error sin imprimir la conexión. `FUNCTION_INVOCATION_FAILED` requiere consultar **Logs** para ver la excepción de arranque.
+
+La adaptación se verifica localmente; no sustituye la aceptación del despliegue real. El límite de intentos de inicio de sesión está en memoria por instancia; no es un bloqueo global entre funciones. Los respaldos se ejecutan desde un equipo o servicio con acceso a la base, fuera de la función web.
+
+Referencias: [runtime Node.js](https://vercel.com/docs/functions/runtimes/node-js), [variables de entorno](https://vercel.com/docs/environment-variables), [conexiones a Supabase](https://supabase.com/docs/guides/database/connecting-to-postgres).
 
 Para usar el proyecto Supabase ya preparado, sigue primero `SUPABASE.md`. El servidor lee `.env` y `.env.runtime`; `FLAMINGO_DATABASE_URL` tiene prioridad sobre `DATABASE_URL`. Las instrucciones de disco persistente de esta sección corresponden al modo SQLite. Con PostgreSQL, los datos permanecen en Supabase y se necesita hosting para el servidor web Node.js, HTTPS y secretos de entorno.
 
