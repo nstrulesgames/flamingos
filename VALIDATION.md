@@ -116,5 +116,6 @@ Las 44 pruebas automatizadas pasan, incluidas cinco pruebas HTTP del adaptador: 
 - Conteo a 320px: filtro de pendientes, progreso 1/37 y borrador conservado al cerrar y reabrir. Controles numéricos de 18px y títulos del formulario enfocados al abrir.
 - Resumen sin desbordamiento horizontal de página a 320, 390, 480 y 768px; a 768px la composición conserva 480px. Gráfico con desplazamiento interno y etiquetas de 12px. Perfil de 44px sin salir de la cabecera estrecha.
 - Mostrar/Ocultar cambia el tipo de campo y aria-pressed; perfil abre Más opciones y conserva la sesión. Pago con estados aria-pressed. Evidencia de catálogo en `test-results/ui-mobile-oct06.jpg`.
+- Contraste medido: texto blanco del acceso sobre rojo 4,82:1, botones primarios 5,71:1 y detalle del catálogo 6,69:1. La copia secundaria del acceso se corrigió de 3,58:1 a 4,82:1.
 - Falta prueba física del teclado virtual y tacto en iOS/Android: se verificó foco DOM y tamaños de viewport, que no equivalen a hardware real.
 
