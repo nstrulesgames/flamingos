@@ -36,7 +36,7 @@ test('hosting: simultaneous cold requests share initialization and prefer the li
   const responses = await Promise.all(Array.from({ length: 4 }, () => fetch(`${base}/api/status`)));
   for (const response of responses) {
     assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), { setup: true, demo: false, database: 'postgres', google: false });
+    assert.deepEqual(await response.json(), { setup: true, setupAllowed: false, demo: false, database: 'postgres', google: false });
   }
   assert.equal(connections, 1);
   assert.equal(supplied, environment.FLAMINGO_DATABASE_URL);
@@ -58,7 +58,9 @@ test('hosting: login accepts streamed JSON and issues an HTTPS session cookie', 
 
 test('hosting: owner bootstrap is disabled even when the platform forwards over loopback', async t => {
   let setupCalled = false;
-  const base = await serve(t, { environment, logger: quiet, storeFactory: async () => ({ setup() { setupCalled = true; } }) });
+  const base = await serve(t, { environment, logger: quiet, storeFactory: async () => ({ isSetup: async () => false, setup() { setupCalled = true; } }) });
+  const status = await fetch(`${base}/api/status`);
+  assert.equal((await status.json()).setupAllowed, false);
   const response = await fetch(`${base}/api/setup`, { method: 'POST', headers, body: '{}' });
   assert.equal(response.status, 403);
   assert.equal(setupCalled, false);

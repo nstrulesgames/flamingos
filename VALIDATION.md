@@ -109,3 +109,12 @@ Las 44 pruebas automatizadas pasan, incluidas cinco pruebas HTTP del adaptador: 
 
 `vercel build --prod` generó el frontend estático y una función Node.js 24 para `/api/*`. El paquete excluye `.env*` y `data/`; el certificado público figura en `filePathMap`, que Vercel incorpora al desplegar. El arranque local y la carga de archivos de entorno están separados en `start.js`.
 
+## Tipografía y flujos móviles · 6 de octubre de 2026
+
+- `npm run check`, `git diff --check` y las 51 pruebas automatizadas pasan. El contrato de estado anuncia si el alta inicial está permitida; el bloqueo de Vercel conserva su prueba HTTP.
+- Demostración SQLite separada en puerto 3001: turno #5 con fondo Bs 100, una Coca-Cola 300 ml por Bs 5, recibidos Bs 20 y vuelto Bs 15. Declaración de 37 insumos y Bs 105; revisión y aprobación sin diferencias. Ninguna de estas operaciones modificó Supabase.
+- Conteo a 320px: filtro de pendientes, progreso 1/37 y borrador conservado al cerrar y reabrir. Controles numéricos de 18px y títulos del formulario enfocados al abrir.
+- Resumen sin desbordamiento horizontal de página a 320, 390, 480 y 768px; a 768px la composición conserva 480px. Gráfico con desplazamiento interno y etiquetas de 12px. Perfil de 44px sin salir de la cabecera estrecha.
+- Mostrar/Ocultar cambia el tipo de campo y aria-pressed; perfil abre Más opciones y conserva la sesión. Pago con estados aria-pressed. Evidencia de catálogo en `test-results/ui-mobile-oct06.jpg`.
+- Falta prueba física del teclado virtual y tacto en iOS/Android: se verificó foco DOM y tamaños de viewport, que no equivalen a hardware real.
+

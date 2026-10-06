@@ -17,3 +17,11 @@ Fuentes aplicadas (instrucciones consultadas, no instalación global):
 - https://github.com/emilkowalski/skills — emil-design-eng y mobile-native.
 
 Copias locales de referencia en design-references/ (excluidas de Git); las fuentes originales están enlazadas arriba. Se utilizó el fallback de lectura directa porque el launcher no está instalado. La dirección visual y alcance ya fueron fijados por el usuario; no se generó una ronda de conceptos alternativa.
+
+## Revisión de legibilidad · 6 de octubre de 2026
+
+Una familia de sistema para las operaciones y el acceso, con escala fija en rem: cuerpo 15px, información secundaria 13px, campos y precios 16px, secciones 20px y títulos 26px. El nombre de marca conserva su lettering. Importes con cifras tabulares y nombres de productos sin tracking comprimido. La composición sigue limitada a 480px.
+
+Perfil abre las opciones de cuenta; cerrar sesión permanece como acción explícita con confirmación. Contraseña con control Mostrar/Ocultar accesible. Diálogos enfocan su título en celular para presentar el contexto antes de activar un campo; teclado de escritorio conserva el enfoque de formulario. Métodos de pago exponen su selección con aria-pressed. Importes rápidos se distribuyen en dos filas para conservar etiquetas completas.
+
+El resumen usa una columna de métricas a 320px y dos en celulares más anchos. El gráfico conserva etiquetas legibles y desplaza sus horas dentro del panel. El acceso público muestra una explicación si falta el propietario y el alta local está bloqueada, en lugar de ofrecer un formulario que sería rechazado.

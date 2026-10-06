@@ -73,7 +73,7 @@ export function createApp({ database = resolve(root, 'data/flamingo.sqlite'), de
             }
             const token = req.headers.cookie?.split(';').map(s => s.trim()).find(s => s.startsWith('flamingo_session='))?.slice(17);
             if (route === 'GET /api/status')
-                return json({ setup: await store.isSetup(), demo, database: store.backend || 'sqlite', google: !!googleAuth });
+                return json({ setup: await store.isSetup(), setupAllowed: allowSetup && ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress), demo, database: store.backend || 'sqlite', google: !!googleAuth });
             if (route === 'POST /api/setup') {
                 // Bootstrap is local-only; create the owner before exposing the service.
                 assert(allowSetup && ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress), 'Configura el propietario desde el servidor local.', 403);
