@@ -90,11 +90,33 @@ test('mixed payments affect the physical cash drawer only by the cash part',t=>{
 test('cashier cannot perform owner actions or use another person’s shift',t=>{
   const {store,owner,cashier,sale}=fixture(t);open(store,owner,0);
   assert.throws(()=>sale(cashier),/otro cajero/);
+  assert.throws(()=>store.stockMovement(cashier,{kind:'restock',itemId:5,quantity:1,note:'test'}),/otro cajero/);
   assert.throws(()=>open(store,cashier,0),/Ya hay un turno/);
-  for(const action of [()=>store.stockMovement(cashier,{kind:'restock',itemId:5,quantity:1,note:'test'}),()=>store.closeShift(cashier,{}),()=>store.createUser(cashier,{}),()=>store.saveProduct(cashier,{}),()=>store.report(cashier,'2026-01-01','2026-01-01')])assert.throws(action,/Solo el propietario/);
+  for(const action of [()=>store.closeShift(cashier,{}),()=>store.createUser(cashier,{}),()=>store.saveProduct(cashier,{}),()=>store.report(cashier,'2026-01-01','2026-01-01')])assert.throws(action,/Solo el propietario/);
   const s=sale();assert.throws(()=>store.receipt(cashier,s.id),/No puedes ver/);
   assert.equal(store.snapshot(cashier).sales.length,0);assert.equal(store.snapshot(cashier).users.length,0);
 });
+test('cashier restocks belong to their open shift and authenticated user, including the reconciliation baseline',t=>{
+  const {store,owner,cashier}=fixture(t);
+  const movement={kind:'restock',itemId:5,quantity:12,note:'Entrega del proveedor'};
+  assert.throws(()=>store.stockMovement(cashier,movement),/Abre un turno/);
+  store.stockMovement(owner,{...movement,quantity:1});
+  assert.equal(store.snapshot(owner).movements[0].shift_id,null);
+  const shift=open(store,cashier,0),before=store.snapshot(owner).inventory.find(i=>i.id===5).stock;
+  store.stockMovement(cashier,{...movement,userId:owner.id,user_id:owner.id,shiftId:999,shift_id:999});
+  const snapshot=store.snapshot(owner),entry=snapshot.movements[0];
+  assert.equal(snapshot.inventory.find(i=>i.id===5).stock,before+12);
+  assert.equal(entry.user_id,cashier.id);assert.equal(entry.actor,cashier.name);
+  assert.equal(entry.shift_id,shift.id);assert.equal(entry.kind,'restock');assert.equal(entry.note,movement.note);
+  for(const body of [{quantity:0},{quantity:1.5},{quantity:-1},{note:''}])assert.throws(()=>store.stockMovement(cashier,{...movement,...body}));
+  const stranger=store.createUser(owner,{name:'Otro cajero',username:'otro',password:'ClaveSegura2026!',role:'cashier'});
+  assert.throws(()=>store.stockMovement(stranger,movement),/otro cajero/);
+  store.startCount(cashier,{shiftId:shift.id});
+  assert.equal(store.shiftDetail(owner,shift.id).items.find(i=>i.item_id===5).expected,before+12);
+  for(const user of [cashier,owner])assert.throws(()=>store.stockMovement(user,movement),/pausadas/);
+  assert.equal(store.snapshot(owner).inventory.find(i=>i.id===5).stock,before+12);
+});
+
 test('restocks, waste and approved declaration reconcile stock with explained discrepancies',t=>{
   const {store,owner,sale}=fixture(t);open(store,owner,10000);sale();
   store.stockMovement(owner,{kind:'restock',itemId:5,quantity:10,note:'Entrega del proveedor'});

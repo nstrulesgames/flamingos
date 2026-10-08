@@ -97,6 +97,43 @@ test('PostgreSQL: initial setup, catalog, password sessions and minimum database
   assert.equal(roles.rows[0].exposed, false);
 });
 
+test('PostgreSQL: cashier restocks are attributed to their own open shift and freeze at the count', async t => {
+  const {store,owner,worker,itemId,open}=await fixture(t);
+  const movement={kind:'restock',itemId,quantity:12,note:'Entrega del proveedor'};
+  await assert.rejects(store.stockMovement(worker,movement),/Abre un turno/);
+  await store.stockMovement(owner,{...movement,quantity:1});
+  assert.equal((await store.snapshot(owner)).movements[0].shift_id,null);
+  const shift=await open();
+  const other=await store.createUser(owner,{name:'Otro cajero',username:'otro',password:'ClaveSegura2026!',role:'cashier'});
+  await assert.rejects(store.stockMovement(other,movement),/otro cajero/);
+  await assert.rejects(store.stockMovement({...other,role:'admin'},movement),/otro cajero/);
+  await store.stockMovement(worker,{...movement,userId:owner.id,user_id:owner.id,shiftId:999,shift_id:999});
+  const snapshot=await store.snapshot(owner),entry=snapshot.movements[0];
+  assert.equal(snapshot.inventory.find(i=>i.id===itemId).stock,13);
+  assert.equal(entry.user_id,worker.id);assert.equal(entry.actor,worker.name);
+  assert.equal(entry.shift_id,shift.id);assert.equal(entry.kind,'restock');assert.equal(entry.note,movement.note);
+  for(const body of [{quantity:0},{quantity:1.5},{quantity:-1},{note:''}])await assert.rejects(store.stockMovement(worker,{...movement,...body}));
+  await store.startCount(worker,{shiftId:shift.id});
+  assert.equal((await store.shiftDetail(owner,shift.id)).items.find(i=>i.item_id===itemId).expected,13);
+  for(const user of [worker,owner])await assert.rejects(store.stockMovement(user,movement),/pausadas/);
+  assert.equal((await store.snapshot(owner)).inventory.find(i=>i.id===itemId).stock,13);
+});
+
+test('PostgreSQL: saving a prepared product as sales only enables it without stock deductions', async t => {
+  const {store,owner,worker,open}=await fixture(t);
+  const coffee=(await store.snapshot(owner)).products.find(p=>p.name==='Café americano');
+  assert.equal(coffee.available,0);
+  await assert.rejects(store.saveProduct(worker,{...coffee,inventoryMode:'untracked',recipe:[]}),/Solo el propietario/);
+  await store.saveProduct(owner,{...coffee,inventoryMode:'untracked',recipe:[]});
+  const configured=(await store.snapshot(owner)).products.find(p=>p.id===coffee.id);
+  assert.equal(configured.inventory_mode,'untracked');assert.equal(configured.available,null);assert.deepEqual(configured.recipe,[]);
+  await open();
+  const before=(await store.snapshot(owner)).inventory;
+  const sale=await store.sale(worker,{requestId:randomUUID(),items:[{id:coffee.id,quantity:2}],cash:coffee.price*2,tendered:coffee.price*2,service:'local'});
+  assert.equal(sale.total,coffee.price*2);
+  assert.deepEqual((await store.snapshot(owner)).inventory,before);
+});
+
 test('PostgreSQL: sale and stock commit together; retries do not duplicate payments', async t => {
   const { store, owner, worker, itemId, open, sale } = await fixture(t);
   await store.stockMovement(owner, { itemId, quantity: 2, kind: 'restock', note: 'Stock de ensayo' });
