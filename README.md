@@ -8,7 +8,7 @@ La interfaz usa cristal esmerilado en navegación, pedido y diálogos, con texto
 
 Los accesos aceptan **correo o usuario y contraseña**, y **Continuar con Google** cuando está configurado Supabase Auth. Crea primero al propietario desde la aplicación local conectada a Supabase; después entra a **Más opciones → Equipo → Agregar persona** para crear cajeros o propietarios. Usa contraseñas de al menos 10 caracteres. Para Google registra el correo de esa cuenta: solo los usuarios activos ya autorizados en el POS pueden entrar. Google no crea propietarios ni cajeros automáticamente. No se envían invitaciones ni códigos por correo.
 
-- Venta con búsqueda sin acentos, seis categorías y 33 tarjetas que agrupan las 60 variantes del menú del cliente. Las botellas se eligen por presentación; las escarchas por tamaño y sabor; los bolos por sabor. El acceso inferior abre el pedido o permite ir directo al cobro.
+- Venta con búsqueda sin acentos, seis categorías y 33 tarjetas para los 38 productos del menú. Las botellas se eligen por presentación y las escarchas por vaso. El acceso inferior abre el pedido o permite ir directo al cobro.
 - Pago con botón **Exacto**, importes frecuentes, vuelto visible y **Nueva venta** desde el comprobante.
 - Arqueo con progreso, búsqueda de insumos, **Solo pendientes** y **Siguiente pendiente**. Enter pasa al siguiente insumo sin completar. Las cantidades vacías no equivalen a cero; los filtros no omiten la validación de campos obligatorios.
 - Borrador local por usuario, turno y versión, con aviso cuando no puede guardarse. Cada reconteo comienza con campos vacíos y conserva declaraciones anteriores.
@@ -19,13 +19,12 @@ El catálogo, el pedido, los pagos, el inventario, los historiales y el resumen 
 
 ### Menú y control de stock
 
-Los precios proceden de las dos fotos del cliente. Ver `MENU.md`. Las existencias de demostración son ficticias; la configuración real comienza con saldo cero.
+Los precios proceden de las dos fotos del cliente; la versión 2 del menú simplifica el control según la propietaria. Ver `MENU.md`. Las existencias de demostración son ficticias; la configuración real comienza con saldo cero.
 
-- Botellas, bolos, empanadas y dulces listos descuentan una unidad por venta. Los sabores y presentaciones tienen saldos separados.
-- Las escarchas comparten mezcla por sabor. Vender una chica descuenta 250 ml, una mediana 300 ml y una grande 500 ml. Reposición, merma y conteo de líquidos se introducen en litros; el servidor almacena ml enteros.
-- Los 11 preparados (sándwiches, hamburguesa, cafés y batidos) necesitan recetas confirmadas. Se muestran como pendientes y no se pueden vender hasta configurarlos. Se recomienda empezar por porciones fáciles de contar. El propietario puede elegir explícitamente **Solo registrar ventas**, con aviso de que no habrá control de stock para ese producto.
-
-El menú se importa una sola vez al iniciar, entre turnos. Conserva los comprobantes, precios históricos y arqueos anteriores. El catálogo original de demostración se archiva; el stock coincidente se conserva. Si hay un turno activo, la importación se aplaza hasta reiniciar después de aprobar su cierre. Las posteriores ediciones de precios y recetas no se sobrescriben al reiniciar.
+- Todo se controla por unidad, sin recetas ni litros. Bolos con un stock por tipo (agua, leche, fruta); escarchas por vaso (250, 300 y 500 ml).
+- Hamburguesa express, cafés y batidos solo registran la venta.
+- Los vasos se reponen por paquete completo (100 o 50). El cajero repone durante su turno; solo la propietaria registra mermas.
+- Los insumos sueltos (pan, jamón…) se crean, reponen y cuentan en el arqueo, pero las ventas no los descuentan.
 
 ## Iniciar
 
@@ -60,14 +59,24 @@ Entra desde el mismo equipo a <http://127.0.0.1:3000> y crea el propietario. La 
 - Efectivo y vuelto, registro de QR, tarjeta y pagos mixtos. QR y tarjeta se verifican manualmente con la app bancaria o terminal; no hay procesamiento bancario integrado.
 - Comprobante imprimible e historial de ventas. El comprobante interno **no es factura fiscal**.
 - Base PostgreSQL/Supabase central o SQLite local: los dispositivos conectados al servidor comparten los datos. El resumen y la disponibilidad de productos se actualizan cada 15 segundos mientras la página está visible. En PostgreSQL, cada operación usa una transacción y los cambios de caja se coordinan entre instancias.
-- Propietarios y cajeros con usuarios individuales. Sesiones de 12 horas en cookies HttpOnly, contraseñas con scrypt, permisos comprobados en el servidor y limitación de intentos de inicio de sesión.
-- Reposiciones, mermas y recetas editables que descuentan ingredientes. Las cantidades son enteras: para fracciones usa gramos, mililitros o porciones como unidad base.
+- Propietarios y cajeros con usuarios individuales; cada uno puede cambiar su contraseña desde **Más**. El propietario puede vender en el turno abierto de un cajero (misma caja) y restablecer contraseñas sin cerrar el turno. Sesiones de 12 horas en cookies HttpOnly, contraseñas con scrypt, permisos comprobados en el servidor y limitación de intentos de inicio de sesión.
+- Reposiciones (por paquete completo cuando corresponde), mermas solo del propietario y recetas opcionales que descuentan ingredientes. Las cantidades son enteras: para fracciones usa gramos, mililitros o porciones como unidad base.
 - El vendedor puede reponer desde **Más opciones → Inventario → Reponer** durante su propio turno abierto. Cada entrada conserva el usuario, turno, cantidad, fecha y referencia; el propietario la consulta en **Inventario → Últimos movimientos**. El propietario también puede reponer entre turnos. Las reposiciones se bloquean durante el arqueo.
 - Apertura de turno con confirmación del inventario y fondo recibidos. Declaración independiente del trabajador, revisión del propietario, reconteos con historial y aprobación con explicación obligatoria de diferencias.
 - Anulación de ventas del turno abierto, motivo obligatorio y reversión de stock basada en los insumos originales de la venta. La devolución del dinero debe realizarse fuera del sistema; si la comida no se recupera, registra la merma correspondiente.
 - Resumen por rango de fechas: ventas, ticket promedio, medios de pago, cajeros, productos vendidos y horas. Fechas del negocio en Bolivia (UTC−4).
 - Exportación CSV de ventas **recientes**: hasta 500 para propietarios y 100 propias para cajeros. El resumen usa todas las ventas del período, sin este límite. Historial de turnos: últimos 60 para el propietario; movimientos: últimos 100.
 - Copias consistentes con `npm run backup`: exportación de datos JSON para PostgreSQL o archivo SQLite en modo local. `npm run backup -- --demo` respalda exclusivamente la demo. Ver alcance y restauración en `SUPABASE.md`.
+
+### Clientes con saldo a favor
+
+- **Vuelto guardado:** al cobrar en efectivo, si el cliente deja el vuelto, se marca **Guardar el vuelto como saldo a favor** y se elige o crea el cliente en el mismo cobro.
+- **Recarga:** el cliente deja dinero por adelantado (efectivo, QR o tarjeta) desde **Más → Clientes → Cargar saldo**. El cajero lo hace durante su turno.
+- **Pago con saldo:** medio de pago **Saldo**, o **Mixto** para combinar saldo con efectivo, QR o tarjeta. El saldo nunca queda negativo.
+- **Devolver y ajustar:** solo el propietario, siempre con motivo. La devolución puede salir de la caja (turno abierto) o fuera de ella.
+- **Anular una venta** devuelve el saldo usado y retira el vuelto guardado; si el cliente ya gastó ese vuelto, la anulación se rechaza.
+- **Arqueo:** el efectivo esperado incluye las recargas en efectivo y los vueltos guardados del turno, y descuenta las devoluciones de caja. Las operaciones de saldo se pausan durante el arqueo.
+- El resumen muestra el total que el negocio debe a sus clientes. Cada cliente tiene su historial de movimientos.
 
 ## Cómo funciona el arqueo
 
@@ -78,17 +87,17 @@ Este MVP representa **una sucursal y una caja compartida, con un turno activo y 
 3. Cada venta descuenta el producto envasado o sus ingredientes. El servidor calcula los precios; rechaza stock insuficiente y pagos que no suman el total.
 4. Las reposiciones ingresan unidades. Las mermas descuentan unidades con su motivo. No se registran como ventas.
 5. El responsable o el propietario selecciona **Turnos y arqueos → Iniciar arqueo**. El servidor fija los saldos esperados y bloquea ventas, reposiciones, mermas y anulaciones en todos los dispositivos hasta aprobar el cierre.
-6. El stock esperado es `inicial + reposiciones − ventas − mermas + devoluciones por anulación`. El efectivo esperado es `fondo inicial + efectivo aplicado a ventas vigentes`; excluye QR y tarjeta y ya descuenta el vuelto.
+6. El stock esperado es `inicial + reposiciones − ventas − mermas + devoluciones por anulación`. El efectivo esperado es `fondo inicial + efectivo aplicado a ventas vigentes + recargas en efectivo y vueltos guardados − devoluciones de saldo desde la caja`; excluye QR, tarjeta y pagos con saldo.
 7. El responsable del turno selecciona **Ingresar mi conteo**, cuenta todos los insumos y el efectivo y envía su declaración. Los saldos esperados no se muestran en su formulario ni se envían a la API del cajero durante el arqueo. El borrador se guarda en su dispositivo. Enviar no ajusta stock ni cierra el turno.
 8. El propietario compara **Sistema y trabajador**. Puede solicitar un reconteo indicando el motivo. El responsable envía una nueva versión, con explicación, y se conservan la declaración anterior, autores, fechas y motivos.
 9. El propietario selecciona **Revisar y aprobar**. Si hay diferencias, debe explicarlas. La aprobación usa exclusivamente la última declaración, ajusta las existencias una sola vez y cierra el turno. No se generan ventas ficticias ni deudas del trabajador.
 10. El conteo aprobado queda como existencia para el siguiente turno. El nuevo cajero confirma lo que recibe realmente. Los arqueos antiguos siguen disponibles como registros históricos.
 
-Estados: **turno abierto → conteo en curso → pendiente de revisión → arqueo aprobado**. Una solicitud de reconteo vuelve al conteo con una versión nueva y conserva el mismo saldo del sistema al corte. Solo el responsable del turno puede declarar; solo un propietario puede aprobar. Si el propietario también opera la caja, puede declarar y aprobar su propio turno. No hay aprobación automática ni reanudación de ventas durante la revisión.
+Estados: **turno abierto → conteo en curso → pendiente de revisión → arqueo aprobado**. Una solicitud de reconteo vuelve al conteo con una versión nueva y conserva el mismo saldo del sistema al corte. Declara el responsable del turno; si no está disponible, el propietario puede contar en su lugar indicando el motivo (queda en la auditoría). Solo un propietario puede aprobar. Si el propietario también opera la caja, puede declarar y aprobar su propio turno. No hay aprobación automática ni reanudación de ventas durante la revisión.
 
 **Ejemplo:** comienzas con 30 sodas, recibes 12, vendes 15 y pierdes 1 por daño. Debe haber 26. Si cuentas 25, el arqueo conserva un faltante de 1 y exige una explicación. Con Bs 100 de fondo y Bs 80 cobrados en efectivo, deben quedar Bs 180, aunque también haya ventas por QR.
 
-Las recetas de hamburguesas descuentan pan, carne, queso y vegetales según el producto. Para helado a granel y escarchas, configura las recetas reales en gramos/mililitros; los ejemplos de catálogo descuentan una porción. Los insumos nuevos se agregan entre turnos para conservar el punto de partida del arqueo.
+Las recetas de hamburguesas descuentan pan, carne, queso y vegetales según el producto. Para helado a granel y escarchas, configura las recetas reales en gramos/mililitros; los ejemplos de catálogo descuentan una porción. Los insumos nuevos pueden crearse con el turno abierto (entran con existencia inicial 0 en ese turno), pero no durante un arqueo.
 
 ## Usarlo desde tablet o celular
 

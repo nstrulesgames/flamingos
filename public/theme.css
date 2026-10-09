@@ -329,3 +329,14 @@ progress::-moz-progress-bar { background:var(--red); }
   html,body,.modal,.receipt { background:#fff!important; color:#111!important; }
   .appearance { display:none; }
 }
+
+/* Saldo a favor */
+.payment-methods { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.payment-methods button { padding-inline: 2px; overflow-wrap: anywhere; }
+button.stat-card { font: inherit; color: inherit; text-align: left; cursor: pointer; width: 100%; }
+.stats-grid .credit-card { grid-column: 1 / -1; }
+.customer-actions { flex-wrap: wrap; }
+.customer-history-title { margin: 20px 0 8px; font-size: 16px; }
+@media (max-width: 420px) {
+  .payment-methods { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

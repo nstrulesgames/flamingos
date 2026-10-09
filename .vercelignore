@@ -6,3 +6,5 @@ node_modules/
 data/
 test-results/
 design-references/
+tmp/
+output/

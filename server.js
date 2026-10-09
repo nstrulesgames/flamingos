@@ -19,7 +19,7 @@ export function createApp({ database = resolve(root, 'data/flamingo.sqlite'), de
             const url = new URL(req.url, 'http://localhost');
             if (!url.pathname.startsWith('/api/')) {
                 assert(req.method === 'GET' || req.method === 'HEAD', 'Método no permitido.', 405);
-                const files = { '/': 'index.html', '/app.js': 'app.js', '/catalog.js': 'catalog.js', '/reconciliation.js': 'reconciliation.js', '/style.css': 'style.css', '/reconciliation.css': 'reconciliation.css', '/glass.css': 'glass.css', '/mobile.css': 'mobile.css', '/theme.js': 'theme.js', '/theme.css': 'theme.css', '/menu-art.svg': 'menu-art.svg', '/art.svg': 'art.svg', '/logo.png': 'logo.png', '/manifest.webmanifest': 'manifest.webmanifest', '/icon.svg': 'icon.svg' };
+                const files = { '/': 'index.html', '/app.js': 'app.js', '/catalog.js': 'catalog.js', '/reconciliation.js': 'reconciliation.js', '/customers.js': 'customers.js', '/style.css': 'style.css', '/reconciliation.css': 'reconciliation.css', '/glass.css': 'glass.css', '/mobile.css': 'mobile.css', '/theme.js': 'theme.js', '/theme.css': 'theme.css', '/menu-art.svg': 'menu-art.svg', '/art.svg': 'art.svg', '/logo.png': 'logo.png', '/manifest.webmanifest': 'manifest.webmanifest', '/icon.svg': 'icon.svg' };
                 const file = files[url.pathname];
                 assert(file, 'Archivo no encontrado.', 404);
                 const content = await readFile(resolve(root, 'public', file));
@@ -126,6 +126,8 @@ export function createApp({ database = resolve(root, 'data/flamingo.sqlite'), de
                 return json(await store.addInventory(user, body), 201);
             if (route === 'POST /api/products')
                 return json(await store.saveProduct(user, body), 201);
+            if (route === 'POST /api/me/password')
+                return json(await store.changeOwnPassword(user, body, token));
             if (route === 'POST /api/users')
                 return json(await store.createUser(user, body), 201);
             if (route === 'GET /api/report')
@@ -138,6 +140,15 @@ export function createApp({ database = resolve(root, 'data/flamingo.sqlite'), de
             match = url.pathname.match(/^\/api\/shifts\/(\d+)$/);
             if (match && req.method === 'GET')
                 return json(await store.shiftDetail(user, Number(match[1])));
+            if (route === 'POST /api/customers')
+                return json(await store.createCustomer(user, body), 201);
+            match = url.pathname.match(/^\/api\/customers\/(\d+)(\/credit)?$/);
+            if (match && req.method === 'GET' && !match[2])
+                return json(await store.customerDetail(user, Number(match[1])));
+            if (match && req.method === 'PATCH' && !match[2])
+                return json(await store.updateCustomer(user, Number(match[1]), body));
+            if (match && req.method === 'POST' && match[2])
+                return json(await store.creditOperation(user, Number(match[1]), body), 201);
             match = url.pathname.match(/^\/api\/users\/(\d+)$/);
             if (match && req.method === 'PATCH')
                 return json(await store.updateUser(user, Number(match[1]), body));

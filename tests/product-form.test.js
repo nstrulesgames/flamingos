@@ -12,7 +12,7 @@ test('editing a prepared product submits sales-only mode even when a hidden inpu
   const listeners={},requests=[],errors={textContent:'',hidden:true};let closed=0,refreshed=0;
   const context=createContext({
     document:{querySelector:s=>s==='.form-error'?errors:null,addEventListener:(name,handler)=>{listeners[name]=handler;}},
-    setInterval:()=>{},createReconciliationUI:()=>({submit:async()=>false}),
+    setInterval:()=>{},createReconciliationUI:()=>({submit:async()=>false}),createCustomersUI:()=>({submit:async()=>false,click:async()=>false}),
     FormData:class{constructor(form){return new Map(form.fields);}},
     testApi:async(path,body)=>{requests.push({path,body});},
     testClose:()=>{closed++;},testRefresh:async()=>{refreshed++;},testToast:()=>{}
@@ -20,6 +20,7 @@ test('editing a prepared product submits sales-only mode even when a hidden inpu
   runInContext(source,context);
   runInContext('api=testApi;closeModal=testClose;refresh=testRefresh;toast=testToast;',context);
   const form={id:{value:'25'},getAttribute:name=>name==='id'?'product-form':null,
+    setAttribute:()=>{},removeAttribute:()=>{},
     fields:[['id','25'],['name','Café americano'],['category','Cafés'],['price','12'],['inventoryMode','untracked'],['active','on']],
     querySelectorAll:()=>{throw new Error('Sales-only mode must ignore recipe inputs');}};
   const submitter={disabled:false};let prevented=false;

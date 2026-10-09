@@ -10,6 +10,8 @@ import { exportPostgresBackup } from '../lib/postgres-backup.js';
 
 const schema = await readFile(new URL('../supabase/migrations/202610060001_flamingo_initial.sql', import.meta.url), 'utf8');
 const menuSeed = await readFile(new URL('../supabase/migrations/202610060002_client_menu.sql', import.meta.url), 'utf8');
+const unitsMigration = await readFile(new URL('../supabase/migrations/202610090001_units_and_packages.sql', import.meta.url), 'utf8');
+const creditMigration = await readFile(new URL('../supabase/migrations/202610090002_customer_credit.sql', import.meta.url), 'utf8');
 test('PostgreSQL: connection URL cannot disable TLS certificate verification', () => {
   const options = postgresConnectionOptions('postgresql://app:example@db.example.com/postgres?ssl=0&sslmode=disable');
   assert.deepEqual(options.ssl, { rejectUnauthorized: true });
@@ -17,10 +19,14 @@ test('PostgreSQL: connection URL cannot disable TLS certificate verification', (
   assert.equal(new URL(options.connectionString).searchParams.has('sslmode'), false);
   assert.throws(() => postgresConnectionOptions('https://example.com'), /PostgreSQL válida/);
 });
-async function fixture(t, setup = true) {
+async function fixture(t, setup = true, prepareV1) {
   const db = new PGlite();
   await db.exec(schema);
   await db.exec(menuSeed);
+  // Data as production had it under schema 1 / menu v1, before the units migration.
+  if (prepareV1) await prepareV1(db);
+  await db.exec(unitsMigration);
+  await db.exec(creditMigration);
   await db.exec('CREATE ROLE flamingo_test LOGIN IN ROLE flamingo_app; SET ROLE flamingo_test');
   // PGlite has one session. Lease it for whole transactions, like a pool of size 1.
   let tail = Promise.resolve();
@@ -82,9 +88,12 @@ test('PostgreSQL: initial setup, catalog, password sessions and minimum database
   const owner = await store.setup({ name: 'Dueña', username: 'admin', password: 'ClaveSegura2026!' });
   await assert.rejects(store.setup({}), /ya está configurado/);
   const state = await store.snapshot(owner);
-  assert.equal(state.products.length, 60);
-  assert.equal(state.inventory.length, 37);
+  // The SQL seed holds menu v1; setup upgrades it to v2 and archives the flavor variants.
+  assert.equal(state.products.length, 66);
+  assert.equal(state.products.filter(p => p.active).length, 38);
+  assert.equal(state.inventory.length, 29);
   assert(state.inventory.every(i => i.stock === 0));
+  assert(state.products.filter(p => p.active).every(p => p.inventory_mode === 'untracked' || p.recipe.length === 1));
   await assert.rejects(store.login({ username: 'admin', password: 'incorrecta' }), /incorrectos/);
   const login = await store.login({ username: 'admin', password: 'ClaveSegura2026!' });
   assert.equal((await store.authenticate(login.token)).id, owner.id);
@@ -122,7 +131,7 @@ test('PostgreSQL: cashier restocks are attributed to their own open shift and fr
 test('PostgreSQL: saving a prepared product as sales only enables it without stock deductions', async t => {
   const {store,owner,worker,open}=await fixture(t);
   const coffee=(await store.snapshot(owner)).products.find(p=>p.name==='Café americano');
-  assert.equal(coffee.available,0);
+  assert.equal(coffee.available,null);
   await assert.rejects(store.saveProduct(worker,{...coffee,inventoryMode:'untracked',recipe:[]}),/Solo el propietario/);
   await store.saveProduct(owner,{...coffee,inventoryMode:'untracked',recipe:[]});
   const configured=(await store.snapshot(owner)).products.find(p=>p.id===coffee.id);
@@ -231,7 +240,7 @@ test('PostgreSQL: HTTP routes await storage and keep sessions in HttpOnly cookie
   const cookie = login.headers.get('set-cookie');
   assert.match(cookie, /HttpOnly/);
   const state = await (await fetch(url + '/api/state', { headers: { cookie: cookie.split(';')[0] } })).json();
-  assert.equal(state.products.length, 60);
+  assert.equal(state.products.filter(p => p.active).length, 38);
   assert.equal(state.user.role, 'admin');
   assert.equal((await fetch(url + '/api/state')).status, 401);
 });
@@ -246,6 +255,95 @@ test('PostgreSQL: backup exports consistent business data and excludes login ses
   assert.equal(backup.format, 'flamingo-postgres-data-v1');
   assert.equal(backup.tables.sales.length, 1);
   assert.equal(backup.tables.inventory.find(i => i.id === itemId).stock, 1);
-  assert.equal(backup.tables.products.length, 60);
+  assert.equal(backup.tables.products.length, 66);
   assert.equal('sessions' in backup.tables, false);
+});
+
+test('PostgreSQL: production upgrade merges loaded bolo flavors and waits for the open shift', async t => {
+  let ownerId;
+  const loadV1 = async db => {
+    ownerId = (await db.query("INSERT INTO flamingo.users(name,username,password,role) VALUES('Dueña','duena','x:y','admin') RETURNING id")).rows[0].id;
+    for (const [name, stock] of [['Bolo de agua · Grosella', 15], ['Bolo de fruta · Copoazú', 9], ['Bolo de leche · Chocolate', 7]])
+      await db.query('UPDATE flamingo.inventory SET stock=$1 WHERE name=$2', [stock, name]);
+  };
+  const { store } = await fixture(t, false, loadV1), owner = { id: ownerId };
+  const s = await store.snapshot(owner), inv = name => s.inventory.find(i => i.name === name);
+  assert.equal(inv('Bolo de agua').stock, 15); assert.equal(inv('Bolo de fruta').stock, 9); assert.equal(inv('Bolo de leche').stock, 7);
+  assert.equal(s.inventory.length, 29); assert(!s.inventory.some(i => i.unit === 'ml' || i.name.includes('·')));
+  assert.equal(inv('Vaso de escarcha 500 ml').pack_size, 50);
+  assert.equal(s.products.filter(p => p.active).length, 38);
+  assert.equal(s.movements.filter(m => m.kind === 'transfer').length, 6);
+  await assert.rejects(store.stockMovement(owner, { kind: 'restock', itemId: inv('Vaso de escarcha 250 ml').id, quantity: 10, note: 'x' }), /paquete completo de 100/);
+  await store.stockMovement(owner, { kind: 'restock', itemId: inv('Vaso de escarcha 250 ml').id, quantity: 200, note: 'Dos paquetes' });
+});
+
+test('PostgreSQL: an open shift defers the menu upgrade until its arqueo is approved', async t => {
+  let ownerId;
+  const loadV1 = async db => {
+    ownerId = (await db.query("INSERT INTO flamingo.users(name,username,password,role) VALUES('Dueña','duena','x:y','admin') RETURNING id")).rows[0].id;
+    await db.query("UPDATE flamingo.inventory SET stock=4 WHERE name='Bolo de leche · Coco'");
+    await db.query('INSERT INTO flamingo.shifts(user_id,opening_cash) VALUES($1,0)', [ownerId]);
+    await db.query('INSERT INTO flamingo.shift_stock SELECT 1,id,stock FROM flamingo.inventory');
+  };
+  const { store } = await fixture(t, false, loadV1), owner = { id: ownerId };
+  let s = await store.snapshot(owner);
+  assert(s.inventory.some(i => i.name === 'Bolo de leche · Coco')); assert(!s.inventory.some(i => i.name === 'Bolo de leche'));
+  const cashier = await store.createUser(owner, { name: 'Caja', username: 'caja', password: 'ClaveSegura2026!', role: 'cashier' });
+  await assert.rejects(store.stockMovement(cashier, { kind: 'waste', itemId: s.inventory[0].id, quantity: 1, note: 'x' }), /Solo el propietario/);
+  await store.startCount(owner, { shiftId: s.shift.id });
+  const d = await store.submitCount(owner, { shiftId: s.shift.id, version: 1, requestId: randomUUID(), countedCash: 0, counts: s.inventory.map(i => ({ id: i.id, quantity: i.stock })), notes: '' });
+  await store.approveCount(owner, { shiftId: s.shift.id, declarationId: d.id });
+  s = await store.snapshot(owner);
+  assert.equal(s.inventory.find(i => i.name === 'Bolo de leche').stock, 4); assert.equal(s.shift, null);
+});
+
+test('PostgreSQL: nothing stuck — owner sells, adds items mid-shift, counts for an absent cashier, resets passwords', async t => {
+  const { store, owner, worker, open, product, itemId } = await fixture(t);
+  await open();
+  const shiftId = (await store.snapshot(owner)).shift.id;
+  await store.stockMovement(owner, { kind: 'restock', itemId, quantity: 1, note: 'Stock' });
+  const ownerSale = await store.sale(owner, { requestId: randomUUID(), items: [{ id: product.id, quantity: 1 }], cash: product.price, tendered: product.price, service: 'local' });
+  assert.equal(ownerSale.shift_id, shiftId);
+  const ham = (await store.addInventory(owner, { name: 'Jamón', unit: 'ud', minimum: 1 })).id;
+  await store.stockMovement(worker, { kind: 'restock', itemId: ham, quantity: 2, note: 'Compra' });
+  await store.updateUser(owner, worker.id, { password: 'ClaveNueva2026!' });
+  assert.equal((await store.login({ username: 'caja', password: 'ClaveNueva2026!' })).user.id, worker.id);
+  await assert.rejects(store.updateUser(owner, worker.id, { active: false }), /turno abierto/);
+  await store.startCount(owner, { shiftId });
+  const s = await store.snapshot(owner);
+  const body = { shiftId, version: 1, requestId: randomUUID(), countedCash: 10000 + product.price, counts: s.inventory.map(i => ({ id: i.id, quantity: i.stock })) };
+  await assert.rejects(store.submitCount(owner, { ...body, notes: '' }), /Motivo/);
+  const d = await store.submitCount(owner, { ...body, notes: 'La cajera se fue' });
+  await store.approveCount(owner, { shiftId, declarationId: d.id });
+  await store.updateUser(owner, worker.id, { active: false });
+  assert.equal((await store.snapshot(owner)).shift, null);
+  await assert.rejects(store.changeOwnPassword(owner, { current: 'mala', password: 'OtraClave2026!' }, ''), /actual no es correcta/);
+  await store.changeOwnPassword(owner, { current: 'ClaveDePrueba2026!', password: 'OtraClave2026!' }, '');
+  assert((await store.login({ username: 'owner', password: 'OtraClave2026!' })).token);
+});
+
+test('PostgreSQL: saldo a favor — change kept, payment, deposit, refund, void and arqueo cash', async t => {
+  const { store, owner, worker, open, product, itemId } = await fixture(t);
+  await store.stockMovement(owner, { kind: 'restock', itemId, quantity: 5, note: 'Stock' });
+  await open();
+  const shiftId = (await store.snapshot(owner)).shift.id;
+  const pay = extra => store.sale(worker, { requestId: randomUUID(), items: [{ id: product.id, quantity: 1 }], service: 'local', ...extra });
+  const kept = await pay({ cash: product.price, tendered: product.price + 500, changeToCredit: true, newCustomer: { name: 'Rosa' } });
+  const rosa = kept.customer_id;
+  assert.equal(kept.customer_balance, 500);
+  await assert.rejects(pay({ credit: product.price + 100, customerId: rosa }), /sumar el total/);
+  const used = await pay({ credit: 500, cash: product.price - 500, tendered: product.price - 500, customerId: rosa });
+  await store.creditOperation(worker, rosa, { requestId: randomUUID(), kind: 'deposit', amount: 1000, method: 'cash' });
+  await assert.rejects(store.creditOperation(worker, rosa, { requestId: randomUUID(), kind: 'refund', amount: 100, method: 'cash', note: 'x' }), /Solo el propietario/);
+  await store.creditOperation(owner, rosa, { requestId: randomUUID(), kind: 'refund', amount: 300, method: 'cash', note: 'Pidió efectivo' });
+  await store.voidSale(owner, used.id, { reason: 'Error' });
+  const customer = await store.customerDetail(owner, rosa);
+  assert.equal(customer.balance, 500 - 500 + 1000 - 300 + 500);
+  await store.startCount(worker, { shiftId });
+  const detail = await store.shiftDetail(owner, shiftId);
+  // fund + first sale cash + change kept + cash deposit − cash refund (the voided sale's cash is excluded)
+  assert.equal(detail.baseline.expected_cash, 10000 + product.price + 500 + 1000 - 300);
+  await assert.rejects(store.creditOperation(worker, rosa, { requestId: randomUUID(), kind: 'deposit', amount: 100, method: 'qr' }), /pausadas/);
+  const report = await store.report(owner, '2026-01-01', '2030-01-01');
+  assert.equal(report.credit.owed, 1200); assert.equal(report.credit.customers, 1);
 });

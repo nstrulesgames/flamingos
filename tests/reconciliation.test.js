@@ -24,7 +24,8 @@ test('only the shift worker declares; only owners review; unrelated workers cann
   assert.throws(()=>store.startCount(other,{shiftId:shift.id}),/responsable/);
   assert.throws(()=>store.shiftDetail(other,shift.id),/No puedes consultar/);
   store.startCount(owner,{shiftId:shift.id});
-  assert.throws(()=>store.submitCount(owner,body()),/trabajador responsable/);
+  // The owner may count for an absent worker, but must say why.
+  assert.throws(()=>store.submitCount(owner,{...body(),notes:''}),/Motivo/);
   assert.throws(()=>store.submitCount(other,body()),/trabajador responsable/);
   const d=store.submitCount(worker,body());
   assert.throws(()=>store.approveCount(worker,{shiftId:shift.id,declarationId:d.id}),/Solo el propietario/);
@@ -38,9 +39,9 @@ test('freezing blocks every inventory and cash mutation while allowing a committ
   const checkFrozen=()=>{
     assert.throws(()=>store.sale(worker,{...sale,requestId:randomUUID()}),/pausadas/);
     assert.throws(()=>store.stockMovement(owner,{itemId:5,quantity:3,kind:'restock',note:'Entrega'}),/pausadas/);
-    assert.throws(()=>store.stockMovement(worker,{itemId:5,quantity:1,kind:'waste',note:'Daño'}),/pausadas/);
+    assert.throws(()=>store.stockMovement(owner,{itemId:5,quantity:1,kind:'waste',note:'Daño'}),/pausadas/);
     assert.throws(()=>store.voidSale(owner,receipt.id,{reason:'Reembolso'}),/pausadas/);
-    assert.throws(()=>store.addInventory(owner,{name:'Extra',unit:'ud',minimum:1}),/entre turnos/);
+    assert.throws(()=>store.addInventory(owner,{name:'Extra',unit:'ud',minimum:1}),/arqueo/);
     assert.throws(()=>store.saveProduct(owner,{}),/pausadas/);
     assert.equal(store.sale(worker,sale).id,receipt.id);
   };

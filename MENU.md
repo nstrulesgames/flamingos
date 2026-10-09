@@ -1,6 +1,12 @@
-# Menú del cliente y configuración pendiente
+# Menú del cliente
 
-Transcripción de las dos fotografías entregadas. Importes en Bs; fuente del catálogo: `lib/menu.js`. 60 variantes en seis categorías, agrupadas en 33 tarjetas de venta.
+Versión 2 (9 de octubre de 2026), ajustada con las observaciones de la propietaria tras el primer día: **todo se cuenta por unidad, sin recetas ni litros**. Importes en Bs; fuente del catálogo: `lib/menu.js`. 38 productos en seis categorías, agrupados en 33 tarjetas de venta.
+
+| Control | Productos |
+|---|---|
+| Stock propio por unidad | Sandwiches, empanadas, dulces, bebidas, vasos de escarcha y bolos |
+| Solo registra la venta | Hamburguesa express, cafés y batidos |
+| Insumos sueltos (los crea la propietaria) | Pan, jamón, huevo… Se reponen, se dan de baja y se cuentan en el arqueo; las ventas no los descuentan |
 
 | Comida | Bs |
 |---|---:|
@@ -45,27 +51,33 @@ Las últimas cinco bebidas no indican volumen en la fotografía. No se ha asigna
 | Batido de proteína con agua | 22 |
 | Batido de proteína con leche | 25 |
 
-| Escarcha | Volumen | Bs |
-|---|---:|---:|
-| Chica | 250 ml | 5 |
-| Mediana | 300 ml | 7 |
-| Grande | 500 ml | 10 |
+| Escarcha | Insumo | Paquete | Bs |
+|---|---|---:|---:|
+| Escarcha 250 ml | Vaso de escarcha 250 ml | 100 | 5 |
+| Escarcha 300 ml | Vaso de escarcha 300 ml | 100 | 7 |
+| Escarcha 500 ml | Vaso de escarcha 500 ml | 50 | 10 |
 
-Cada tamaño ofrece Maracuyá, Copoazú, Grosella, Mocochinchi, Tamarindo y Menta. Se propone descontar el volumen del vaso de la mezcla disponible del sabor elegido. Confirmar que estos volúmenes representan realmente la mezcla usada: si incluyen hielo añadido u otros componentes, la receta debe ajustarse al consumo real.
+Cada venta descuenta un vaso. El sabor no se registra. Los vasos se reponen solo por paquete completo.
 
-| Bolos | Sabores | Bs por unidad |
-|---|---|---:|
-| Agua | Menta, Grosella | 2,50 |
-| Leche | Frutilla, Chocolate, Vainilla, Coco | 4 |
-| Fruta | Maracuyá, Copoazú, Tamarindo, Mocochinchi | 3,50 |
+| Bolos | Bs por unidad |
+|---|---:|
+| Bolo de agua | 2,50 |
+| Bolo de leche | 4 |
+| Bolo de fruta | 3,50 |
 
-Los bolos se cuentan listos por sabor. Su producción no descuenta ingredientes automáticamente en esta versión: se registran las unidades que ingresan mediante reposición.
+Un solo conteo por tipo, sin separar sabores.
 
-## Manera sencilla de empezar
+## Reglas de inventario
 
-1. Contar los productos listos por unidades, separados por presentación y sabor.
-2. Para hamburguesas y sándwiches, definir qué se cuenta en la práctica: productos ya armados o panes y porciones de relleno. Elegir una sola forma de descontar para no contar dos veces el mismo stock.
-3. Para cafés y batidos, medir una receta habitual y controlar los ingredientes principales. Por ejemplo, café en g y leche en ml; las cantidades deben venir de la propietaria.
-4. Registrar la existencia física inicial mediante reposiciones. En los cambios de turno se compara saldo del sistema con conteo independiente del trabajador; las mermas se registran con motivo.
+- Reposición: el cajero durante su turno o la propietaria. Los insumos con paquete solo aceptan paquetes completos.
+- Merma (dar de baja): solo la propietaria.
+- Nuevos insumos: la propietaria, entre turnos (**Más → Inventario → Nuevo insumo**), con su tamaño de paquete si corresponde.
 
-Los 11 preparados quedan pendientes de receta. El formato de ml facilita guardar cantidades enteras, mientras el personal introduce los líquidos en litros durante reposiciones y arqueos. La demostración contiene saldos ficticios y está separada de la base real.
+## Paso de la versión 1 a la 2
+
+Se aplica una sola vez, nunca con un turno abierto: al iniciar el servidor entre turnos o inmediatamente después de aprobar el arqueo del turno abierto.
+
+- Los bolos por sabor se archivan y su stock pasa al bolo de su tipo, con movimientos «Traspaso al nuevo menú».
+- Las 18 escarchas por sabor y las mezclas en ml se archivan. Ese stock no se puede convertir a vasos.
+- Los productos que ya existían conservan precio, nombre y recetas editadas por la propietaria. Solo cambian los que seguían pendientes de receta.
+- Las ventas, comprobantes y arqueos anteriores no cambian.

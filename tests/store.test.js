@@ -152,7 +152,10 @@ test('cannot void a closed shift; can switch cashier after owner closes',t=>{
   store.closeShift(owner,closure(store,owner));open(store,cashier,1000);
   assert.throws(()=>store.voidSale(owner,s.id,{reason:'test'}),/turno abierto/);sale(cashier);
   assert.equal(store.snapshot(cashier).sales.length,1);assert.equal(store.snapshot(owner).sales.length,2);
-  assert.throws(()=>store.updateUser(owner,cashier.id,{active:false}),/Cierra el turno/);
+  assert.throws(()=>store.updateUser(owner,cashier.id,{active:false}),/turno abierto/);
+  // A forgotten password never blocks the shift.
+  store.updateUser(owner,cashier.id,{password:'ClaveNueva2026!'});
+  assert.equal(store.login({username:'camila',password:'ClaveNueva2026!'}).user.id,cashier.id);
 });
 test('owner reports use Bolivia business dates and exclude voided sales',t=>{
   const {store,owner,sale}=fixture(t);open(store,owner,0);
