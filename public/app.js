@@ -1,5 +1,6 @@
 import { createReconciliationUI } from './reconciliation.js';
 import { createCustomersUI } from './customers.js';
+import { servingPrice, weightBasisLabel, cartLineKey } from './pricing.js';
 import { menuGroups, maximumQuantity } from './catalog.js';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -101,7 +102,7 @@ function renderProducts(){
   $('#product-grid').innerHTML=visibleGroups.length?visibleGroups.map((group,index)=>{
     const p=group.products[0],many=group.products.length>1,ids=group.products.map(p=>p.id),qty=cart.filter(c=>ids.includes(c.id)).reduce((sum,c)=>sum+c.quantity,0);
     const available=group.products.some(p=>p.available===null||p.available>0),pending=group.products.every(p=>p.inventory_mode==='recipe'&&!p.recipe.length),prices=group.products.map(p=>p.price),min=Math.min(...prices),max=Math.max(...prices);
-    return `<button class="product-card ${qty?'selected':''} ${pending?'needs-recipe':''}" data-menu-group="${index}" ${!many?`data-product="${p.id}"`:''} ${!available&&!pending?'disabled':''} ${pending&&state.user.role!=='admin'?'disabled':''}><div class="product-visual art-${p.art}">${art(p)}${pending?'<span class="stock-pill recipe-pill">Falta receta</span>':!available?'<span class="stock-pill sold-out">Agotado</span>':''}${qty?`<span class="selected-qty">${qty}</span>`:''}</div><div class="product-info"><h3>${esc(many?group.name:p.name)}</h3><small class="product-option">${esc(many?group.products.map(p=>p.variant).join(' · '):p.variant||p.category)}</small><div class="product-bottom"><strong>${min===max?money(min):`Desde ${money(min)}`}</strong><span class="add-product">${icon(pending?'edit':many?'chevron':qty?'check':'plus')}</span></div></div></button>`;
+    return `<button class="product-card ${qty?'selected':''} ${pending?'needs-recipe':''}" data-menu-group="${index}" ${!many?`data-product="${p.id}"`:''} ${!available&&!pending?'disabled':''} ${pending&&state.user.role!=='admin'?'disabled':''}><div class="product-visual art-${p.art}">${art(p)}${pending?'<span class="stock-pill recipe-pill">Falta receta</span>':!available?'<span class="stock-pill sold-out">Agotado</span>':''}${qty?`<span class="selected-qty">${qty}</span>`:''}</div><div class="product-info"><h3>${esc(many?group.name:p.name)}</h3><small class="product-option">${esc(many?group.products.map(p=>p.variant).join(' · '):p.variant||p.category)}</small><div class="product-bottom"><strong>${min===max?money(min):`Desde ${money(min)}`}${!many&&p.pricing_mode==='weight'?` / ${weightBasisLabel(p.weight_basis_grams)}`:''}</strong><span class="add-product">${icon(pending?'edit':many?'chevron':qty?'check':'plus')}</span></div></div></button>`;
   }).join(''):empty('No encontramos ese producto','Prueba con otro nombre, sabor o categoría.','search');
 }
 function chooseVariant(group){
@@ -127,27 +128,39 @@ function recoverPayment(){
   modal('Confirmar un cobro pendiente','La conexión se interrumpió durante un cobro. Consulta o reintenta la misma operación para evitar duplicados.',`<form id="payment-form"><div class="info-block">${icon('shield')} Se conservaron los datos de la operación. El servidor registrará esta venta una sola vez.</div>${formFooter('Verificar y recuperar comprobante')}</form>`);
 }
 function renderCart(){
-  const focused=document.activeElement,focusId=focused?.dataset.qty,focusDelta=focused?.dataset.delta;
+  const focused=document.activeElement,focusId=focused?.dataset.qty,focusDelta=focused?.dataset.delta,focusWeight=focused?.dataset.weight||'';
   const scroll=$('.order-lines')?.scrollTop||0;
   const qty=cart.reduce((s,l)=>s+l.quantity,0);
-  $('#order').innerHTML=`<div class="order-top"><div><h2 id="order-title">Tu pedido <span class="count-badge">${qty}</span></h2></div><button class="icon-button" data-action="hide-cart" aria-label="Volver al menú">${icon('close')}</button></div><div class="service-toggle"><button data-service="local" class="${service==='local'?'active':''}">${icon('coffee')} Para aquí</button><button data-service="takeaway" class="${service==='takeaway'?'active':''}">${icon('bag')} Para llevar</button></div><div class="order-lines">${cart.length?cart.map(p=>`<div class="order-line"><div class="line-art art-${p.art}">${art(p)}</div><div class="line-info"><h3>${esc(p.name)}</h3><span>${money(p.price)}</span><div class="quantity"><button data-qty="${p.id}" data-delta="-1" aria-label="Quitar uno de ${esc(p.name)}">${icon('minus')}</button><b>${p.quantity}</b><button data-qty="${p.id}" data-delta="1" aria-label="Agregar uno de ${esc(p.name)}">${icon('plus')}</button></div></div><strong>${money(p.price*p.quantity)}</strong></div>`).join(''):empty('Tu pedido está vacío','Añade productos. Aquí verás las cantidades y el total.','bag')}</div><div class="order-bottom">${cart.length?`<details class="order-extras"><summary>Nota y opciones del pedido</summary><label class="order-note">Nota del pedido<input id="order-note" placeholder="Ej. sin cebolla, salsa aparte…" maxlength="300" value="${esc(orderNote)}"></label><button class="clear-cart" data-action="clear-cart">Vaciar orden</button></details>`:''}<div class="total-line"><span>Total a cobrar</span><strong>${money(cartTotal())}</strong></div><button class="primary checkout" data-action="checkout" ${!cart.length||reconciliationLocked()?'disabled':''}><span>${icon('cash')} Cobrar pedido</span>${icon('arrow')}</button><p class="checkout-hint">${state.shift?`Turno de ${esc(state.shift.cashier)}`:'Abre un turno para comenzar a vender.'}</p></div>`;
+  $('#order').innerHTML=`<div class="order-top"><div><h2 id="order-title">Tu pedido <span class="count-badge">${qty}</span></h2></div><button class="icon-button" data-action="hide-cart" aria-label="Volver al menú">${icon('close')}</button></div><div class="service-toggle"><button data-service="local" class="${service==='local'?'active':''}">${icon('coffee')} Para aquí</button><button data-service="takeaway" class="${service==='takeaway'?'active':''}">${icon('bag')} Para llevar</button></div><div class="order-lines">${cart.length?cart.map(p=>`<div class="order-line"><div class="line-art art-${p.art}">${art(p)}</div><div class="line-info"><h3>${esc(p.name)}</h3><span>${p.weight_grams?`${p.weight_grams} g · ${money(p.weight_price)} / ${weightBasisLabel(p.weight_basis_grams)}`:money(p.price)}</span>${p.weight_grams?`<button class="text-button" data-edit-weight="${p.id}" data-weight="${p.weight_grams}">Cambiar peso</button>`:''}<div class="quantity"><button data-qty="${p.id}" data-weight="${p.weight_grams||''}" data-delta="-1" aria-label="Quitar uno de ${esc(p.name)}">${icon('minus')}</button><b>${p.quantity}</b><button data-qty="${p.id}" data-weight="${p.weight_grams||''}" data-delta="1" aria-label="Agregar uno de ${esc(p.name)}">${icon('plus')}</button></div></div><strong>${money(p.price*p.quantity)}</strong></div>`).join(''):empty('Tu pedido está vacío','Añade productos. Aquí verás las cantidades y el total.','bag')}</div><div class="order-bottom">${cart.length?`<details class="order-extras"><summary>Nota y opciones del pedido</summary><label class="order-note">Nota del pedido<input id="order-note" placeholder="Ej. sin cebolla, salsa aparte…" maxlength="300" value="${esc(orderNote)}"></label><button class="clear-cart" data-action="clear-cart">Vaciar orden</button></details>`:''}<div class="total-line"><span>Total a cobrar</span><strong>${money(cartTotal())}</strong></div><button class="primary checkout" data-action="checkout" ${!cart.length||reconciliationLocked()?'disabled':''}><span>${icon('cash')} Cobrar pedido</span>${icon('arrow')}</button><p class="checkout-hint">${state.shift?`Turno de ${esc(state.shift.cashier)}`:'Abre un turno para comenzar a vender.'}</p></div>`;
   $('#order-note')?.addEventListener('input',e=>orderNote=e.target.value);
   $('.mobile-cart').innerHTML=`${icon('bag')}<span><b>${qty?`${qty} ${qty===1?'producto':'productos'}`:'Pedido vacío'}</b><small>${qty?'Ver pedido':'Elige del menú'}</small></span><strong>${money(cartTotal())}</strong>`;
   $('.dock-checkout').disabled=!qty||reconciliationLocked();
   $('.sale-dock').classList.toggle('has-items',qty>0);
   $('.order-lines').scrollTop=scroll;
-  if(focusId)$('#order').querySelector(`[data-qty="${focusId}"][data-delta="${focusDelta}"]`)?.focus({preventScroll:true});
+  if(focusId)$('#order').querySelector(`[data-qty="${focusId}"][data-weight="${focusWeight}"][data-delta="${focusDelta}"]`)?.focus({preventScroll:true});
 }
 function showCart(){const d=$('#order');if(d&&!d.open)d.showModal();}
 function hideCart(){$('#order')?.close();}
-function addProduct(id,delta=1){
+function weightModal(id,oldWeight=null){
+  const p=state.products.find(p=>p.id===id&&p.active);if(!p)return;
+  if(reconciliationLocked()){toast('Las operaciones están pausadas por el arqueo.',true);return;}
+  modal(oldWeight?'Cambiar peso':p.name,'Ingresa el peso neto de una porción, sin el recipiente.',`<form id="weight-form"><input type="hidden" name="id" value="${id}"><input type="hidden" name="oldWeight" value="${oldWeight||''}"><p class="info-block">${money(p.price)} por ${weightBasisLabel(p.weight_basis_grams)}</p><label>Peso servido (g)<input name="weightGrams" id="served-weight" type="number" inputmode="numeric" min="1" max="100000" step="1" required value="${oldWeight||''}" placeholder="Peso de la balanza" autofocus></label><div class="payment-total"><span>Total por porción</span><strong id="weight-total">${money(0)}</strong></div><p class="muted">El importe se redondea a dos decimales. Cada porción conserva su peso en el comprobante.</p>${formFooter(oldWeight?'Guardar peso':'Añadir al pedido')}</form>`);
+  const input=$('#served-weight'),submit=$('#weight-form button[type="submit"]');
+  const sync=()=>{const price=servingPrice(p,Number(input.value));$('#weight-total').textContent=money(price||0);submit.disabled=!(price>0);};
+  input.addEventListener('input',sync);sync();
+}
+function addProduct(id,delta=1,weightGrams=null){
   if(reconciliationLocked()){toast('Las operaciones están pausadas por el arqueo.',true);return;}
   const p=state.products.find(p=>p.id===id);if(!p)return;
-  const line=cart.find(c=>c.id===id),qty=(line?.quantity||0)+delta;
+  if(p.pricing_mode==='weight'&&weightGrams===null){weightModal(id);return false;}
+  if(p.pricing_mode!=='weight'&&weightGrams!==null){toast('El tipo de cobro cambió. Actualiza el pedido.',true);return false;}
+  const price=servingPrice(p,weightGrams);if(!(price>0)){toast('Ingresa un peso válido que produzca un importe mayor a cero.',true);return false;}
+  const key=cartLineKey({id,weight_grams:weightGrams}),line=cart.find(c=>cartLineKey(c)===key),qty=(line?.quantity||0)+delta;
   const maximum=maximumQuantity(p,cart,state.inventory);
-  if(delta>0&&qty>maximum){toast(`Puedes añadir hasta ${maximum} de ${p.name} con el stock restante.`,true);return false;}
-  if(qty>999)return;
-  if(qty<=0)cart=cart.filter(c=>c.id!==id);else if(line)line.quantity=qty;else cart.push({...p,quantity:qty});
+  const other=cart.filter(c=>c.id===id&&cartLineKey(c)!==key).reduce((n,c)=>n+c.quantity,0);
+  if(delta>0&&qty+other>maximum){toast(`Puedes añadir hasta ${maximum} de ${p.name} con el stock restante.`,true);return false;}
+  if(qty+other>999)return false;
+  if(qty<=0)cart=cart.filter(c=>cartLineKey(c)!==key);else if(line)line.quantity=qty;else cart.push({...p,price,quantity:qty,...(weightGrams!==null?{weight_grams:weightGrams,weight_price:p.price}: {})});
   document.querySelectorAll('[data-menu-group]').forEach(el=>{
     const ids=visibleGroups[Number(el.dataset.menuGroup)]?.products.map(p=>p.id)||[];
     const count=cart.filter(c=>ids.includes(c.id)).reduce((sum,c)=>sum+c.quantity,0);
@@ -188,11 +201,16 @@ function paymentFields(){
   if(['cash','mixed'].includes(payment))syncCustomer();
 }
 function showReceipt(sale){
-  modal('Venta registrada',`Orden #${String(sale.id).padStart(4,'0')} · ${date(sale.created_at,true)}`,`<div class="receipt" id="receipt"><div class="receipt-brand">Flamingo’s</div><p>Comprobante interno · No es factura fiscal</p><p>${esc(sale.cashier)} · ${sale.service==='local'?'Para aquí':'Para llevar'}</p><div class="receipt-lines">${sale.lines.map(l=>`<div><span>${l.quantity} × ${esc(l.name)}</span><b>${money(l.price*l.quantity)}</b></div>`).join('')}</div><div class="total-line"><span>Total</span><strong>${money(sale.total)}</strong></div>${sale.customer?`<p>Cliente: <b>${esc(sale.customer)}</b></p>`:''}${[['Efectivo',sale.cash],['QR',sale.qr],['Tarjeta',sale.card],['Saldo a favor',sale.credit]].filter(v=>v[1]>0).map(([label,value])=>`<div class="receipt-payment"><span>${label}</span><b>${money(value)}</b></div>`).join('')}${sale.cash?`<div class="receipt-payment"><span>Recibido / vuelto entregado</span><b>${money(sale.tendered)} / ${money(sale.change_due-(sale.change_credit||0))}</b></div>`:''}${sale.change_credit?`<div class="receipt-payment"><span>Vuelto guardado como saldo</span><b>${money(sale.change_credit)}</b></div>`:''}${sale.customer?`<div class="receipt-payment"><span>Saldo actual de ${esc(sale.customer)}</span><b>${money(sale.customer_balance)}</b></div>`:''}${sale.note?`<p class="receipt-note">${esc(sale.note)}</p>`:''}${sale.status==='void'?`<p class="danger-text">ANULADA: ${esc(sale.void_reason)}</p>`:''}<p>Gracias por elegirnos. ¡Vuelve pronto!</p></div><div class="modal-actions">${button(`${icon('print')} Imprimir`,'print','secondary')}${button('Nueva venta','new-sale')}</div>${state.user.role==='admin'&&sale.status==='paid'&&state.shift?.stage==='open'&&state.shift.id===sale.shift_id?`<button class="text-danger" data-void="${sale.id}">Anular venta y devolver productos al inventario</button>`:''}`);
+  modal('Venta registrada',`Orden #${String(sale.id).padStart(4,'0')} · ${date(sale.created_at,true)}`,`<div class="receipt" id="receipt"><div class="receipt-brand">Flamingo’s</div><p>Comprobante interno · No es factura fiscal</p><p>${esc(sale.cashier)} · ${sale.service==='local'?'Para aquí':'Para llevar'}</p><div class="receipt-lines">${sale.lines.map(l=>`<div><span>${l.quantity} × ${esc(l.name)}${l.weight_grams?` · ${l.weight_grams} g por porción<small>${money(l.weight_price)} / ${weightBasisLabel(l.weight_basis_grams)}</small>`:''}</span><b>${money(l.price*l.quantity)}</b></div>`).join('')}</div><div class="total-line"><span>Total</span><strong>${money(sale.total)}</strong></div>${sale.customer?`<p>Cliente: <b>${esc(sale.customer)}</b></p>`:''}${[['Efectivo',sale.cash],['QR',sale.qr],['Tarjeta',sale.card],['Saldo a favor',sale.credit]].filter(v=>v[1]>0).map(([label,value])=>`<div class="receipt-payment"><span>${label}</span><b>${money(value)}</b></div>`).join('')}${sale.cash?`<div class="receipt-payment"><span>Recibido / vuelto entregado</span><b>${money(sale.tendered)} / ${money(sale.change_due-(sale.change_credit||0))}</b></div>`:''}${sale.change_credit?`<div class="receipt-payment"><span>Vuelto guardado como saldo</span><b>${money(sale.change_credit)}</b></div>`:''}${sale.customer?`<div class="receipt-payment"><span>Saldo actual de ${esc(sale.customer)}</span><b>${money(sale.customer_balance)}</b></div>`:''}${sale.note?`<p class="receipt-note">${esc(sale.note)}</p>`:''}${sale.status==='void'?`<p class="danger-text">ANULADA: ${esc(sale.void_reason)}</p>`:''}<p>Gracias por elegirnos. ¡Vuelve pronto!</p></div><div class="modal-actions">${button(`${icon('print')} Imprimir`,'print','secondary')}${button('Nueva venta','new-sale')}</div>${state.user.role==='admin'&&sale.status==='paid'&&state.shift?.stage==='open'&&state.shift.id===sale.shift_id?`<button class="text-danger" data-void="${sale.id}">Anular venta y devolver productos al inventario</button>`:''}`);
 }
 function syncCartWithCatalog(){
   const total=cartTotal(),count=cart.length;
-  cart=cart.flatMap(line=>{const product=state.products.find(p=>p.id===line.id&&p.active);return product?[{...product,quantity:line.quantity}]:[];});
+  cart=cart.flatMap(line=>{
+    const product=state.products.find(p=>p.id===line.id&&p.active);if(!product)return [];
+    const weighted=product.pricing_mode==='weight';if(weighted!==!!line.weight_grams)return [];
+    const price=servingPrice(product,line.weight_grams);if(!(price>0))return [];
+    return [{...product,price,quantity:line.quantity,...(weighted?{weight_grams:line.weight_grams,weight_price:product.price}:{})}];
+  });
   if(total!==cartTotal()||count!==cart.length)toast('El menú cambió. Revisa los productos y el total del pedido.',true);
 }
 async function refresh(){
@@ -268,10 +286,11 @@ function movementModal(kind,id){
 function inventoryModal(){modal('Nuevo insumo','Productos o ingredientes que cuentas por unidad: panes, paquetes de jamón, vasos…',`<form id="inventory-form"><label>Nombre<input name="name" required maxlength="120" placeholder="Ej. Pulpa de fresa"></label><div class="field-row"><label>Unidad de medida<input name="unit" required maxlength="20" placeholder="Ej. g, ml, ud"></label><label>Alerta de stock mínimo<input name="minimum" type="number" inputmode="decimal" min="0" step="1" value="5" required></label></div><label>Unidades por paquete<input name="packSize" type="number" inputmode="numeric" min="1" max="10000" step="1" value="1" required></label><p class="muted">Si llega en paquetes cerrados (ej. 100 vasos), se repone solo por paquete completo. Deja 1 para reponer de a una unidad.</p><p class="muted">Se crea con existencia cero. Registra una reposición para ingresar stock. Se puede crear con el turno abierto, pero no durante un arqueo.</p>${formFooter('Crear insumo')}</form>`);}
 function recipeRow(r={}){return `<div class="recipe-row"><select name="recipeItem" aria-label="Insumo de la receta">${state.inventory.map(i=>`<option value="${i.id}" ${i.id===r.item_id?'selected':''}>${esc(i.name)} (${esc(i.unit)})</option>`).join('')}</select><input name="recipeQty" type="number" inputmode="decimal" aria-label="Cantidad por producto vendido" min="1" step="1" max="100000" value="${r.quantity||1}" required><button type="button" class="icon-button" data-action="remove-recipe" aria-label="Quitar insumo">${icon('close')}</button></div>`;}
 function productModal(id){
-  const p=state.products.find(v=>v.id===id),mode=p?.inventory_mode||'recipe';
+  const p=state.products.find(v=>v.id===id),mode=p?.inventory_mode||'recipe',pricingMode=p?.pricing_mode||'unit',basis=p?.weight_basis_grams||100;
   modal(p?'Editar producto':'Nuevo producto','Elige si cada venta descontará unidades o ingredientes.',
-    '<form id="product-form"><input type="hidden" name="id" value="'+(p?.id||'')+'"><label>Nombre<input name="name" required maxlength="120" value="'+esc(p?.name||'')+'"></label><div class="field-row"><label>Categoría<select name="category">'+state.categories.map(c=>'<option '+(c===p?.category?'selected':'')+'>'+esc(c)+'</option>').join('')+'</select></label><label>Precio (Bs)<input name="price" type="number" inputmode="decimal" min="0.01" step="0.01" required value="'+(p?p.price/100:'')+'"></label></div><label>Control de existencias<select name="inventoryMode" id="inventory-mode"><option value="recipe" '+(mode==='recipe'?'selected':'')+'>Descontar unidades o ingredientes</option><option value="untracked" '+(mode==='untracked'?'selected':'')+'>Solo registrar ventas</option></select></label><input name="description" type="hidden" value="'+esc(p?.description||'')+'"><input name="art" type="hidden" value="'+esc(p?.art||'burger')+'"><label class="check-label"><input type="checkbox" name="active" '+(!p||p.active?'checked':'')+'> Disponible en el menú</label><div id="recipe-editor"><div class="section-toolbar"><h3>Consumo por unidad vendida</h3><button type="button" class="text-button" data-action="add-recipe">'+icon('plus')+' Insumo</button></div><div id="recipe-rows">'+(p?.recipe||[]).map(recipeRow).join('')+'</div><p class="muted">Un producto listo usa 1 unidad. Los preparados usan sus ingredientes en g, ml o ud. Añade los insumos desde Inventario antes de definir la receta.</p></div><p id="untracked-note" class="info-block" hidden>Solo se registrarán ventas. Este producto no descontará existencias ni tendrá un saldo físico para el arqueo.</p>'+formFooter('Guardar producto')+'</form>',true);
+    '<form id="product-form"><input type="hidden" name="id" value="'+(p?.id||'')+'"><label>Nombre<input name="name" required maxlength="120" value="'+esc(p?.name||'')+'"></label><div class="field-row"><label>Categoría<select name="category">'+state.categories.map(c=>'<option '+(c===p?.category?'selected':'')+'>'+esc(c)+'</option>').join('')+'</select></label><label><span id="product-price-label">Precio (Bs)</span><input name="price" type="number" inputmode="decimal" min="0.01" step="0.01" required value="'+(p?p.price/100:'')+'"></label></div><label>Tipo de cobro<select name="pricingMode" id="pricing-mode"><option value="unit" '+(pricingMode==='unit'?'selected':'')+'>Por unidad o porción</option><option value="weight" '+(pricingMode==='weight'?'selected':'')+'>Por peso</option></select></label><label id="weight-basis-label">Precio por<select name="weightBasisGrams" id="weight-basis">'+[[100,'100 gramos'],[1000,'1 kilo'],[1,'1 gramo']].map(([value,label])=>'<option value="'+value+'" '+(value===basis?'selected':'')+'>'+label+'</option>').join('')+'</select></label><label>Control de existencias<select name="inventoryMode" id="inventory-mode"><option value="recipe" '+(mode==='recipe'?'selected':'')+'>Descontar unidades o ingredientes</option><option value="untracked" '+(mode==='untracked'?'selected':'')+'>Solo registrar ventas</option></select></label><input name="description" type="hidden" value="'+esc(p?.description||'')+'"><input name="art" type="hidden" value="'+esc(p?.art||'burger')+'"><label class="check-label"><input type="checkbox" name="active" '+(!p||p.active?'checked':'')+'> Disponible en el menú</label><div id="recipe-editor"><div class="section-toolbar"><h3>Consumo por unidad vendida</h3><button type="button" class="text-button" data-action="add-recipe">'+icon('plus')+' Insumo</button></div><div id="recipe-rows">'+(p?.recipe||[]).map(recipeRow).join('')+'</div><p class="muted">Un producto listo usa 1 unidad. Los preparados usan sus ingredientes en g, ml o ud. Añade los insumos desde Inventario antes de definir la receta.</p></div><p id="untracked-note" class="info-block" hidden>Solo se registrarán ventas. Este producto no descontará existencias ni tendrá un saldo físico para el arqueo.</p>'+formFooter('Guardar producto')+'</form>',true);
   const sync=()=>{const untracked=$('#inventory-mode').value==='untracked';$('#recipe-editor').hidden=untracked;$('#untracked-note').hidden=!untracked;$('#recipe-editor').querySelectorAll('input,select').forEach(i=>i.disabled=untracked);};$('#inventory-mode').addEventListener('change',sync);sync();
+  const syncPricing=()=>{const weighted=$('#pricing-mode').value==='weight';$('#weight-basis-label').hidden=!weighted;$('#weight-basis').disabled=!weighted;$('#product-price-label').textContent=weighted?`Precio por ${weightBasisLabel(Number($('#weight-basis').value))} (Bs)`:'Precio por unidad o porción (Bs)';};$('#pricing-mode').addEventListener('change',syncPricing);$('#weight-basis').addEventListener('change',syncPricing);syncPricing();
 }
 
 function renderSales(){
@@ -305,6 +324,7 @@ document.addEventListener('click',async e=>{
       $('#report-range [name=from]').value=from;$('#report-range [name=to]').value=to;
       el.disabled=true;try{await loadReport(from,to);if(view==='dashboard')$('#report-body').innerHTML=dashboardBody();}finally{el.disabled=false;}return;
     }
+    if(el.dataset.editWeight){weightModal(Number(el.dataset.editWeight),Number(el.dataset.weight));return;}
     if(el.dataset.variantProduct){if(addProduct(Number(el.dataset.variantProduct)))closeModal();return;}
     if(el.dataset.menuGroup){
       const group=visibleGroups[Number(el.dataset.menuGroup)];if(!group)return;
@@ -315,7 +335,7 @@ document.addEventListener('click',async e=>{
     }
     if(el.dataset.category){category=el.dataset.category;document.querySelectorAll('[data-category]').forEach(b=>{b.classList.toggle('active',b.dataset.category===category);b.setAttribute('aria-pressed',b.dataset.category===category);});renderProducts();return;}
     if(el.dataset.product){addProduct(Number(el.dataset.product));return;}
-    if(el.dataset.qty){addProduct(Number(el.dataset.qty),Number(el.dataset.delta));return;}
+    if(el.dataset.qty){addProduct(Number(el.dataset.qty),Number(el.dataset.delta),Number(el.dataset.weight)||null);return;}
     if(el.dataset.service){service=el.dataset.service;renderCart();return;}
     if(el.dataset.payment){payment=el.dataset.payment;document.querySelectorAll('[data-payment]').forEach(b=>{b.classList.toggle('active',b.dataset.payment===payment);b.setAttribute('aria-pressed',String(b.dataset.payment===payment));});paymentFields();return;}
     if(el.dataset.cash){$('#tendered').value=el.dataset.cash;$('#tendered').dispatchEvent(new Event('input'));return;}
@@ -342,9 +362,21 @@ document.addEventListener('submit',async e=>{
     const f=new FormData(form),v=Object.fromEntries(f);
     if(await reconciliation.submit(id,e.target,v,f))return;
     if(await customers.submit(id,e.target,v,f))return;
+    if(id==='weight-form'){
+      const product=state.products.find(p=>p.id===Number(v.id)&&p.active);
+      if(!product||product.pricing_mode!=='weight')throw new Error('El tipo de cobro cambió. Actualiza el pedido.');
+      const weight=Number(v.weightGrams),price=servingPrice(product,weight);
+      if(!(price>0))throw new Error('Ingresa un peso válido que produzca un importe mayor a cero.');
+      const previous=cart,old=Number(v.oldWeight)||null;
+      const oldLine=old?cart.find(c=>c.id===product.id&&c.weight_grams===old):null;
+      if(old&&!oldLine)throw new Error('La porción cambió. Vuelve a abrir el pedido.');
+      if(oldLine)cart=cart.filter(c=>c!==oldLine);
+      if(!addProduct(product.id,oldLine?.quantity||1,weight)){cart=previous;return;}
+      closeModal();return;
+    }
     if(id==='payment-form'){
       let payload=pendingSale;
-      if(!payload){const total=cartTotal();const requestId=Array.from(crypto.getRandomValues(new Uint8Array(24)),n=>n.toString(16).padStart(2,'0')).join('');payload={requestId,items:cart.map(p=>({id:p.id,quantity:p.quantity})),cash:payment==='cash'?total:payment==='mixed'?cents(v.cash):0,qr:payment==='qr'?total:payment==='mixed'?cents(v.qr):0,card:payment==='card'?total:payment==='mixed'?cents(v.card):0,credit:payment==='credit'?total:payment==='mixed'?cents(v.credit||0):0,tendered:['cash','mixed'].includes(payment)?cents(v.tendered):0,service,note:orderNote};
+      if(!payload){const total=cartTotal();const requestId=Array.from(crypto.getRandomValues(new Uint8Array(24)),n=>n.toString(16).padStart(2,'0')).join('');payload={requestId,items:cart.map(p=>({id:p.id,quantity:p.quantity,...(p.weight_grams?{weightGrams:p.weight_grams}:{})})),cash:payment==='cash'?total:payment==='mixed'?cents(v.cash):0,qr:payment==='qr'?total:payment==='mixed'?cents(v.qr):0,card:payment==='card'?total:payment==='mixed'?cents(v.card):0,credit:payment==='credit'?total:payment==='mixed'?cents(v.credit||0):0,tendered:['cash','mixed'].includes(payment)?cents(v.tendered):0,service,note:orderNote};
         // Only sales that use or keep balance are linked to a customer.
         if(payment==='cash'&&f.has('keepChange'))Object.assign(payload,{changeToCredit:true},customers.salePayload(v));
         else if(payload.credit>0)Object.assign(payload,customers.salePayload(v));}
@@ -358,7 +390,7 @@ document.addEventListener('submit',async e=>{
     }
     else if(id==='movement-form')await api('/movements',{...v,itemId:Number(v.itemId),quantity:Math.round(Number(v.quantity)*Number(e.target.elements.quantity.dataset.factor))});
     else if(id==='inventory-form')await api('/inventory',{...v,minimum:Number(v.minimum),packSize:Number(v.packSize)});
-    else if(id==='product-form')await api('/products',{...v,id:v.id?Number(v.id):undefined,price:cents(v.price),active:f.has('active'),recipe:v.inventoryMode==='untracked'?[]:[...e.target.querySelectorAll('.recipe-row')].map(row=>({item_id:Number(row.querySelector('select').value),quantity:Number(row.querySelector('input').value)}))});
+    else if(id==='product-form')await api('/products',{...v,id:v.id?Number(v.id):undefined,price:cents(v.price),pricingMode:v.pricingMode||'unit',weightBasisGrams:Number(v.weightBasisGrams||100),active:f.has('active'),recipe:v.inventoryMode==='untracked'?[]:[...e.target.querySelectorAll('.recipe-row')].map(row=>({item_id:Number(row.querySelector('select').value),quantity:Number(row.querySelector('input').value)}))});
 
     else if(id==='user-form')await api('/users',v);
     else if(id==='my-password-form')await api('/me/password',{current:v.current,password:v.password});

@@ -81,3 +81,11 @@ Se aplica una sola vez, nunca con un turno abierto: al iniciar el servidor entre
 - Las 18 escarchas por sabor y las mezclas en ml se archivan. Ese stock no se puede convertir a vasos.
 - Los productos que ya existían conservan precio, nombre y recetas editadas por la propietaria. Solo cambian los que seguían pendientes de receta.
 - Las ventas, comprobantes y arqueos anteriores no cambian.
+
+## Helado de Açaí y venta por peso
+
+El Helado de Açaí inicia a **Bs 1,00 por porción**, con **Solo registrar ventas**. La propietaria puede editarlo en **Más → Inventario → Menú y recetas**. Se agrega una sola vez y los cambios posteriores de precio o configuración se conservan.
+
+Para cobrar por peso, selecciona **Tipo de cobro → Por peso**, elige la tarifa por **100 gramos, 1 kilo o 1 gramo**, escribe su precio y guarda. El control de existencias es independiente: puede mantenerse en **Solo registrar ventas**, sin receta ni descuento de gramos de inventario.
+
+El vendedor toca el producto, escribe el peso neto en gramos (sin el recipiente), revisa el total y lo añade al pedido. Puede añadir porciones de pesos distintos o usar **Cambiar peso** antes de cobrar. El signo `+` repite una porción del mismo peso. El comprobante conserva el peso, la tarifa y el importe de cada porción aunque se modifique el producto después. No se conecta automáticamente a una balanza: el peso se ingresa manualmente.

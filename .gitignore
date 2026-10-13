@@ -8,3 +8,4 @@ test-results/
 design-references/
 tmp/
 .vercel/
+supabase/.temp/

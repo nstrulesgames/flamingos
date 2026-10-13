@@ -117,4 +117,7 @@ h1,h2,h3{font-family:var(--font-ui);font-weight:650;letter-spacing:-.02em;line-h
   .stat-card{border-right:0}.stat-card:nth-child(n+3){border-bottom:1px solid #e5d6cd}.stat-card:last-child{border-bottom:0}
 }
 @media(prefers-reduced-transparency:reduce){.modal,.login-form{background:#fffcf7;backdrop-filter:none}}
+.receipt-lines small{display:block;margin-top:4px;color:var(--muted);font-size:11px}
+.receipt-lines>div{gap:12px;align-items:flex-start}
+.receipt-lines>div>b{flex-shrink:0;white-space:nowrap}
 @media print{.shell,.sale-dock,.mobile-nav,#order{display:none!important}.modal{position:static;width:80mm;max-width:none;max-height:none;margin:0;padding:4mm;box-shadow:none;border:0}}

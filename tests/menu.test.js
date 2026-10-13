@@ -12,16 +12,16 @@ function fixture(t){const store=createStore(':memory:',{demo:true});t.after(()=>
 function open(store,owner){const s=store.snapshot(owner);store.openShift(owner,{openingCash:10000,confirmed:true,openingStock:s.inventory.map(i=>({id:i.id,quantity:i.stock}))});}
 function sell(store,owner,items,extra={}){const products=store.snapshot(owner).products,total=items.reduce((n,line)=>n+products.find(p=>p.id===line.id).price*line.quantity,0);return store.sale(owner,{requestId:randomUUID(),items,cash:total,qr:0,card:0,tendered:total,service:'local',...extra});}
 
-test('menu v2: 38 products in 33 cards, all counted in whole units without recipes to configure',t=>{
+test('menu v2 plus Açaí: 39 products in 34 cards, counted in units or sales only',t=>{
   const {store,owner}=fixture(t),s=store.snapshot(owner);
-  assert.equal(clientMenu.length,38);assert.equal(new Set(clientMenu.map(p=>p.key)).size,38);
-  assert.deepEqual(Object.fromEntries(s.categories.map(c=>[c,s.products.filter(p=>p.active&&p.category===c).length])),{'Comida':10,'Bebidas frías':14,'Cafés':6,'Batidos':2,'Escarchas':3,'Bolos':3});
-  assert.equal(menuGroups(s.products).length,33);
+  assert.equal(clientMenu.length,39);assert.equal(new Set(clientMenu.map(p=>p.key)).size,39);
+  assert.deepEqual(Object.fromEntries(s.categories.map(c=>[c,s.products.filter(p=>p.active&&p.category===c).length])),{'Comida':10,'Bebidas frías':14,'Cafés':6,'Batidos':2,'Escarchas':3,'Bolos':3,'Helados':1});
+  assert.equal(menuGroups(s.products).length,34);
   for(const [name,price] of [['Coca-Cola 500 ml',700],['Hamburguesa express',1500],['Latte frío',1600],['Bolo de agua',250],['Bolo de leche',400],['Bolo de fruta',350],['Escarcha 250 ml',500],['Escarcha 300 ml',700],['Escarcha 500 ml',1000]])assert.equal(s.products.find(p=>p.name===name).price,price);
   assert.equal(s.inventory.length,29);assert(s.inventory.every(i=>i.unit==='ud'));
   // Nothing is left "pending": made-to-order items only record the sale.
   const active=s.products.filter(p=>p.active);
-  assert.deepEqual(active.filter(p=>p.inventory_mode==='untracked').map(p=>p.name).sort(),['Batido de proteína con agua','Batido de proteína con leche','Café americano','Café con leche','Café frío','Capuchino','Frapuchino','Hamburguesa express','Latte frío']);
+  assert.deepEqual(active.filter(p=>p.inventory_mode==='untracked').map(p=>p.name).sort(),['Batido de proteína con agua','Batido de proteína con leche','Café americano','Café con leche','Café frío','Capuchino','Frapuchino','Hamburguesa express','Latte frío','Helado de Açaí'].sort());
   assert(active.filter(p=>p.inventory_mode==='recipe').every(p=>p.recipe.length===1&&p.recipe[0].quantity===1));
   assert.deepEqual(s.inventory.filter(i=>i.name.startsWith('Vaso')).map(i=>[i.name,i.pack_size]),[['Vaso de escarcha 250 ml',100],['Vaso de escarcha 300 ml',100],['Vaso de escarcha 500 ml',50]]);
   assert.equal(s.inventory.find(i=>i.name==='Sandwich mixto').pack_size,1);
@@ -70,7 +70,7 @@ test('owner can add loose ingredients by package that no sale deducts',t=>{
 
 test('real setup starts with zero stock and nothing pending',t=>{
   const store=createStore(':memory:');t.after(()=>store.close());const owner=store.setup({name:'Dueña',username:'owner',password:'suficientementelarga'}),s=store.snapshot(owner);
-  assert.equal(s.products.length,38);assert(s.inventory.every(i=>i.stock===0));assert(s.products.every(p=>p.inventory_mode==='untracked'||p.recipe.length===1));
+  assert.equal(s.products.length,39);assert(s.inventory.every(i=>i.stock===0));assert(s.products.every(p=>p.inventory_mode==='untracked'||p.recipe.length===1));
 });
 
 // Builds a database exactly as menu v1 left it: flavor bolos, escarchas in ml, pending recipes.
@@ -111,7 +111,7 @@ test('upgrade from v1 waits for the open shift, merges bolo flavors into one sto
   assert.equal(inv('Vaso de escarcha 300 ml').pack_size,100);assert.equal(inv('Sandwich mixto').stock,0);
   assert.equal(s.products.find(p=>p.id===colaId).price,750);
   assert.equal(s.products.find(p=>p.name==='Hamburguesa express').inventory_mode,'untracked');
-  assert.equal(s.products.filter(p=>p.active).length,38);
+  assert.equal(s.products.filter(p=>p.active).length,39);
   assert.equal(store.receipt(owner,sale.id).lines[0].name,'Bolo de agua · Grosella');
   const transfers=s.movements.filter(m=>m.kind==='transfer');assert.equal(transfers.length,6);assert.equal(transfers.reduce((n,m)=>n+m.quantity,0),0);
   // Runs once: a later restart keeps whatever the owner changes afterwards.
@@ -126,7 +126,7 @@ test('legacy demo catalog still upgrades by name and preserves its sales',t=>{
   store=createStore(file,{demo:true});assert.equal(store.snapshot(owner).products.length,12);
   const s=store.snapshot(owner);store.startCount(owner,{shiftId:s.shift.id});const d=store.submitCount(owner,{shiftId:s.shift.id,version:1,requestId:randomUUID(),countedCash:10800,counts:s.inventory.map(i=>({id:i.id,quantity:i.stock})),notes:''});store.closeShift(owner,{shiftId:s.shift.id,declarationId:d.id});store.close();
   store=createStore(file,{demo:true});const snapshot=store.snapshot(owner);
-  assert.equal(snapshot.products.filter(p=>p.active).length,38);
+  assert.equal(snapshot.products.filter(p=>p.active).length,39);
   assert.equal(store.receipt(owner,sale.id).lines[0].price,800);
   const cola=snapshot.products.find(p=>p.name==='Coca-Cola 500 ml');assert.equal(cola.price,700);assert.equal(snapshot.inventory.find(i=>i.name===cola.name).stock,34);
   store.close();

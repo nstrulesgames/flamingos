@@ -5,17 +5,20 @@ import {PGlite} from '@electric-sql/pglite';
 import {createPostgresDatabase} from '../lib/postgres-db.js';
 import {exportPostgresBackup} from '../lib/postgres-backup.js';
 
-const migrations=await Promise.all(['202610060001_flamingo_initial.sql','202610060002_client_menu.sql','202610090001_units_and_packages.sql','202610090002_customer_credit.sql'].map(name=>readFile(new URL(`../supabase/migrations/${name}`,import.meta.url),'utf8')));
+const migrations=await Promise.all(['202610060001_flamingo_initial.sql','202610060002_client_menu.sql','202610090001_units_and_packages.sql','202610090002_customer_credit.sql','20261013122250_weighted_sales.sql'].map(name=>readFile(new URL(`../supabase/migrations/${name}`,import.meta.url),'utf8')));
 
 test('migration guards prevent partial, out-of-order and repeated upgrades; new tables remain private',async t=>{
   const db=new PGlite();t.after(()=>db.close());
   await db.exec(migrations[0]);await db.exec(migrations[1]);
   const version=async()=> (await db.query("SELECT value FROM flamingo.settings WHERE key='schema_version'")).rows[0].value;
+  await assert.rejects(db.exec(migrations[4]),/requiere el esquema 3/);await db.exec('ROLLBACK');assert.equal(await version(),'1');
   await assert.rejects(db.exec(migrations[3]),/requiere el esquema 2/);await db.exec('ROLLBACK');assert.equal(await version(),'1');
   await db.exec(migrations[2]);assert.equal(await version(),'2');
   await assert.rejects(db.exec(migrations[2]),/requiere el esquema 1/);await db.exec('ROLLBACK');assert.equal(await version(),'2');
   await db.exec(migrations[3]);assert.equal(await version(),'3');
   await assert.rejects(db.exec(migrations[3]),/requiere el esquema 2/);await db.exec('ROLLBACK');
+  await db.exec(migrations[4]);assert.equal(await version(),'4');
+  await assert.rejects(db.exec(migrations[4]),/requiere el esquema 3/);await db.exec('ROLLBACK');
   const rows=(await db.query("SELECT relname,relrowsecurity FROM pg_class WHERE oid IN ('flamingo.customers'::regclass,'flamingo.credit_movements'::regclass)")).rows;
   assert.equal(rows.length,2);assert(rows.every(row=>row.relrowsecurity));
   await db.exec('CREATE ROLE test_public; SET ROLE test_public');

@@ -12,6 +12,7 @@ const schema = await readFile(new URL('../supabase/migrations/202610060001_flami
 const menuSeed = await readFile(new URL('../supabase/migrations/202610060002_client_menu.sql', import.meta.url), 'utf8');
 const unitsMigration = await readFile(new URL('../supabase/migrations/202610090001_units_and_packages.sql', import.meta.url), 'utf8');
 const creditMigration = await readFile(new URL('../supabase/migrations/202610090002_customer_credit.sql', import.meta.url), 'utf8');
+const weightMigration = await readFile(new URL('../supabase/migrations/20261013122250_weighted_sales.sql', import.meta.url), 'utf8');
 test('PostgreSQL: connection URL cannot disable TLS certificate verification', () => {
   const options = postgresConnectionOptions('postgresql://app:example@db.example.com/postgres?ssl=0&sslmode=disable');
   assert.deepEqual(options.ssl, { rejectUnauthorized: true });
@@ -27,6 +28,7 @@ async function fixture(t, setup = true, prepareV1) {
   if (prepareV1) await prepareV1(db);
   await db.exec(unitsMigration);
   await db.exec(creditMigration);
+  await db.exec(weightMigration);
   await db.exec('CREATE ROLE flamingo_test LOGIN IN ROLE flamingo_app; SET ROLE flamingo_test');
   // PGlite has one session. Lease it for whole transactions, like a pool of size 1.
   let tail = Promise.resolve();
@@ -89,8 +91,8 @@ test('PostgreSQL: initial setup, catalog, password sessions and minimum database
   await assert.rejects(store.setup({}), /ya está configurado/);
   const state = await store.snapshot(owner);
   // The SQL seed holds menu v1; setup upgrades it to v2 and archives the flavor variants.
-  assert.equal(state.products.length, 66);
-  assert.equal(state.products.filter(p => p.active).length, 38);
+  assert.equal(state.products.length, 67);
+  assert.equal(state.products.filter(p => p.active).length, 39);
   assert.equal(state.inventory.length, 29);
   assert(state.inventory.every(i => i.stock === 0));
   assert(state.products.filter(p => p.active).every(p => p.inventory_mode === 'untracked' || p.recipe.length === 1));
@@ -240,7 +242,7 @@ test('PostgreSQL: HTTP routes await storage and keep sessions in HttpOnly cookie
   const cookie = login.headers.get('set-cookie');
   assert.match(cookie, /HttpOnly/);
   const state = await (await fetch(url + '/api/state', { headers: { cookie: cookie.split(';')[0] } })).json();
-  assert.equal(state.products.filter(p => p.active).length, 38);
+  assert.equal(state.products.filter(p => p.active).length, 39);
   assert.equal(state.user.role, 'admin');
   assert.equal((await fetch(url + '/api/state')).status, 401);
 });
@@ -255,7 +257,7 @@ test('PostgreSQL: backup exports consistent business data and excludes login ses
   assert.equal(backup.format, 'flamingo-postgres-data-v1');
   assert.equal(backup.tables.sales.length, 1);
   assert.equal(backup.tables.inventory.find(i => i.id === itemId).stock, 1);
-  assert.equal(backup.tables.products.length, 66);
+  assert.equal(backup.tables.products.length, 67);
   assert.equal('sessions' in backup.tables, false);
 });
 
@@ -271,7 +273,7 @@ test('PostgreSQL: production upgrade merges loaded bolo flavors and waits for th
   assert.equal(inv('Bolo de agua').stock, 15); assert.equal(inv('Bolo de fruta').stock, 9); assert.equal(inv('Bolo de leche').stock, 7);
   assert.equal(s.inventory.length, 29); assert(!s.inventory.some(i => i.unit === 'ml' || i.name.includes('·')));
   assert.equal(inv('Vaso de escarcha 500 ml').pack_size, 50);
-  assert.equal(s.products.filter(p => p.active).length, 38);
+  assert.equal(s.products.filter(p => p.active).length, 39);
   assert.equal(s.movements.filter(m => m.kind === 'transfer').length, 6);
   await assert.rejects(store.stockMovement(owner, { kind: 'restock', itemId: inv('Vaso de escarcha 250 ml').id, quantity: 10, note: 'x' }), /paquete completo de 100/);
   await store.stockMovement(owner, { kind: 'restock', itemId: inv('Vaso de escarcha 250 ml').id, quantity: 200, note: 'Dos paquetes' });

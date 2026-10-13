@@ -7,7 +7,7 @@ export function menuGroups(products,{category='Todos',search=''}={}){
     if(!groups.has(key))groups.set(key,{key,name,category:product.category,art:product.art,products:[]});
     groups.get(key).products.push(product);
   }
-  const categories=['Comida','Bebidas frías','Cafés','Batidos','Escarchas','Bolos'];
+  const categories=['Comida','Bebidas frías','Cafés','Batidos','Escarchas','Bolos','Helados'];
   return [...groups.values()].sort((a,b)=>categories.indexOf(a.category)-categories.indexOf(b.category)).map(group=>({...group,products:group.products.sort((a,b)=>a.size?.includes('ml')&&b.size?.includes('ml')?parseInt(a.size)-parseInt(b.size):0)}));
 }
 export function maximumQuantity(product,cart,inventory){

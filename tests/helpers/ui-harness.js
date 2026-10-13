@@ -2,6 +2,7 @@ import {readFileSync} from 'node:fs';
 import {createContext,runInContext} from 'node:vm';
 import {webcrypto} from 'node:crypto';
 import {maximumQuantity} from '../../public/catalog.js';
+import {servingPrice,weightBasisLabel,cartLineKey} from '../../public/pricing.js';
 
 const source=readFileSync(new URL('../../public/app.js',import.meta.url),'utf8')
   .replace(/^import[^\n]*\n/gm,'').replace(/\nboot\(\);\s*$/,'');
@@ -18,7 +19,7 @@ export function uiHarness({state=snapshot(),view='pos',storageBlocked=false}={})
     querySelector:s=>elements.get(s)||null,querySelectorAll:()=>[],
     addEventListener:(name,handler)=>{listeners[name]=handler;}};
   const context=createContext({document,window:{scrollTo:()=>{}},Event,crypto:webcrypto,setInterval:handler=>ticks.push(handler),
-    setTimeout:()=>0,clearTimeout:()=>{},maximumQuantity,
+    setTimeout:()=>0,clearTimeout:()=>{},maximumQuantity,servingPrice,weightBasisLabel,cartLineKey,
     createReconciliationUI:()=>({submit:async()=>false,click:async()=>false}),
     createCustomersUI:()=>({submit:async()=>false,click:async()=>false,salePayload:v=>({customerId:Number(v.customerId)}),hasPending:()=>false,reset:()=>{},recover:()=>{}}),
     FormData:class{constructor(form){return new Map(form.fields);}},

@@ -26,6 +26,6 @@ test('editing a prepared product submits sales-only mode even when a hidden inpu
   const submitter={disabled:false};let prevented=false;
   await listeners.submit({target:form,submitter,preventDefault:()=>{prevented=true;}});
   assert.equal(prevented,true);assert.equal(requests.length,1);
-  assert.deepEqual(JSON.parse(JSON.stringify(requests[0])),{path:'/products',body:{id:25,name:'Café americano',category:'Cafés',price:1200,inventoryMode:'untracked',active:true,recipe:[]}});
+  assert.deepEqual(JSON.parse(JSON.stringify(requests[0])),{path:'/products',body:{id:25,name:'Café americano',category:'Cafés',price:1200,inventoryMode:'untracked',pricingMode:'unit',weightBasisGrams:100,active:true,recipe:[]}});
   assert.equal(closed,1);assert.equal(refreshed,1);assert.equal(submitter.disabled,false);assert.equal(errors.hidden,true);
 });
