@@ -82,9 +82,13 @@ Se aplica una sola vez, nunca con un turno abierto: al iniciar el servidor entre
 - Los productos que ya existían conservan precio, nombre y recetas editadas por la propietaria. Solo cambian los que seguían pendientes de receta.
 - Las ventas, comprobantes y arqueos anteriores no cambian.
 
-## Helado de Açaí y venta por peso
+## Helado de Açaí y precio libre
 
-El Helado de Açaí inicia a **Bs 1,00 por porción**, con **Solo registrar ventas**. La propietaria puede editarlo en **Más → Inventario → Menú y recetas**. Se agrega una sola vez y los cambios posteriores de precio o configuración se conservan.
+El Helado de Açaí usa **Precio libre en caja**, con **Solo registrar ventas**. El cajero toca el producto, escribe el importe que corresponde cobrar según el peso (por ejemplo, Bs 18,50) y lo añade al pedido. El importe es obligatorio y mayor a cero; porciones con importes distintos se conservan en líneas separadas. **Editar importe** permite corregir el valor antes de cobrar. El comprobante identifica el precio libre y al cajero que registró la venta.
+
+La propietaria puede editarlo en **Más → Inventario → Menú y recetas → Tipo de cobro**. El precio base anterior se conserva como referencia para volver a precio por porción, pero no se cobra automáticamente cuando está seleccionado precio libre. La actualización habilita el modo libre una sola vez; los cambios posteriores de la propietaria se conservan.
+
+## Cobro automático por peso (opcional)
 
 Para cobrar por peso, selecciona **Tipo de cobro → Por peso**, elige la tarifa por **100 gramos, 1 kilo o 1 gramo**, escribe su precio y guarda. El control de existencias es independiente: puede mantenerse en **Solo registrar ventas**, sin receta ni descuento de gramos de inventario.
 

@@ -13,6 +13,7 @@ const menuSeed = await readFile(new URL('../supabase/migrations/202610060002_cli
 const unitsMigration = await readFile(new URL('../supabase/migrations/202610090001_units_and_packages.sql', import.meta.url), 'utf8');
 const creditMigration = await readFile(new URL('../supabase/migrations/202610090002_customer_credit.sql', import.meta.url), 'utf8');
 const weightMigration = await readFile(new URL('../supabase/migrations/20261013122250_weighted_sales.sql', import.meta.url), 'utf8');
+const freePriceMigration = await readFile(new URL('../supabase/migrations/20261015135011_free_price_sales.sql', import.meta.url), 'utf8');
 test('PostgreSQL: connection URL cannot disable TLS certificate verification', () => {
   const options = postgresConnectionOptions('postgresql://app:example@db.example.com/postgres?ssl=0&sslmode=disable');
   assert.deepEqual(options.ssl, { rejectUnauthorized: true });
@@ -29,6 +30,7 @@ async function fixture(t, setup = true, prepareV1) {
   await db.exec(unitsMigration);
   await db.exec(creditMigration);
   await db.exec(weightMigration);
+  await db.exec(freePriceMigration);
   await db.exec('CREATE ROLE flamingo_test LOGIN IN ROLE flamingo_app; SET ROLE flamingo_test');
   // PGlite has one session. Lease it for whole transactions, like a pool of size 1.
   let tail = Promise.resolve();

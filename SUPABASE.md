@@ -44,6 +44,7 @@ Los SQL versionados están en `supabase/migrations/`. Se aplican una sola vez, e
 3. `202610090001_units_and_packages.sql`: inventario por unidades y reposición por paquete (esquema 2).
 4. `202610090002_customer_credit.sql`: clientes con saldo a favor (esquema 3).
 5. `20261013122250_weighted_sales.sql`: precios por peso y peso/tarifa conservados en comprobantes (esquema 4).
+6. `20261015135011_free_price_sales.sql`: precio libre habilitado por producto, identificación en comprobantes y Açaí configurado para ingreso manual (esquema 5).
 
 En el proyecto indicado ya se aplicaron. No vuelvas a ejecutarlas manualmente sobre esas tablas. No modifican el esquema `public` ni importan el archivo de demostración.
 

@@ -34,6 +34,7 @@ for(const backend of ['SQLite','PostgreSQL'])test(`${backend}: Açaí defaults t
   let state=await store.snapshot(owner),acai=state.products.find(p=>p.menu_key==='helado-de-acai');
   assert.equal(acai.price,100);assert.equal(acai.inventory_mode,'untracked');assert.equal(acai.pricing_mode,'unit');assert.equal(acai.active,1);assert.equal(acai.recipe.length,0);
   const inventory=state.inventory;
+  await store.saveProduct(owner,{...acai,inventoryMode:'untracked',pricingMode:'unit',recipe:[]});
   await store.openShift(worker,{openingCash:10000,confirmed:true,openingStock:inventory.map(i=>({id:i.id,quantity:i.stock}))});
   const sell=(items,pay={})=>store.sale(worker,{requestId:randomUUID(),items,service:'local',...pay});
   const unit=await sell([{id:acai.id,quantity:2}],{cash:200,tendered:200});
