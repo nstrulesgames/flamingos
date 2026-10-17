@@ -18,6 +18,14 @@ function fixture(t,{api=async()=>({balance:1000}),refresh=async()=>{}}={}){
 }
 const values={customerId:'1',requestId:'credit-test-123',kind:'deposit',method:'cash',amount:'10',note:''};
 
+test('the owner only sees reversal actions for the current shift or movements without a shift',async t=>{
+  const c={id:1,name:'Cliente',balance:500,active:1,movements:[{id:7,amount:500,kind:'payment',method:'cash',shift_id:10}]};
+  const {ui,state,modals}=fixture(t,{api:async()=>c});state.user.role='admin';
+  await ui.click({dataset:{customer:'1'}});assert.doesNotMatch(modals.at(-1)[2],/data-credit-reverse/);
+  state.shift={id:10,stage:'open'};await ui.click({dataset:{customer:'1'}});assert.match(modals.at(-1)[2],/data-credit-reverse="7"/);
+  state.shift={id:11,stage:'open'};await ui.click({dataset:{customer:'1'}});assert.doesNotMatch(modals.at(-1)[2],/data-credit-reverse/);
+});
+
 test('hidden customer fields cannot prevent a cash payment after unchecking saved change',t=>{
   const {ui,elements}=fixture(t);let change;
   const name={disabled:false,required:false},phone={disabled:false,required:false};
