@@ -120,4 +120,11 @@ h1,h2,h3{font-family:var(--font-ui);font-weight:650;letter-spacing:-.02em;line-h
 .receipt-lines small{display:block;margin-top:4px;color:var(--muted);font-size:11px}
 .receipt-lines>div{gap:12px;align-items:flex-start}
 .receipt-lines>div>b{flex-shrink:0;white-space:nowrap}
+.archive-item-action{margin-top:18px;min-height:48px}
+.customer-filter-label{margin:12px 0 18px}
+.customer-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.customer-actions button{min-height:48px;min-width:0;white-space:normal}
+.customer-actions .primary{grid-column:1 / -1}
+.team-actions{flex-wrap:wrap}
+.team-actions [data-toggle-fiado]{flex-basis:100%}
 @media print{.shell,.sale-dock,.mobile-nav,#order{display:none!important}.modal{position:static;width:80mm;max-width:none;max-height:none;margin:0;padding:4mm;box-shadow:none;border:0}}

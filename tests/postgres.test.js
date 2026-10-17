@@ -31,6 +31,7 @@ async function fixture(t, setup = true, prepareV1) {
   await db.exec(creditMigration);
   await db.exec(weightMigration);
   await db.exec(freePriceMigration);
+  await db.exec(await readFile(new URL('../supabase/migrations/20261017150819_customer_debts_and_archives.sql',import.meta.url),'utf8'));
   await db.exec('CREATE ROLE flamingo_test LOGIN IN ROLE flamingo_app; SET ROLE flamingo_test');
   // PGlite has one session. Lease it for whole transactions, like a pool of size 1.
   let tail = Promise.resolve();

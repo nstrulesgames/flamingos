@@ -68,11 +68,20 @@ Entra desde el mismo equipo a <http://127.0.0.1:3000> y crea el propietario. La 
 - Exportación CSV de ventas **recientes**: hasta 500 para propietarios y 100 propias para cajeros. El resumen usa todas las ventas del período, sin este límite. Historial de turnos: últimos 60 para el propietario; movimientos: últimos 100.
 - Copias consistentes con `npm run backup`: exportación de datos JSON para PostgreSQL o archivo SQLite en modo local. `npm run backup -- --demo` respalda exclusivamente la demo. Ver alcance y restauración en `SUPABASE.md`.
 
-### Clientes con saldo a favor
+### Fiado, abonos y archivados · 17 de octubre de 2026
+
+- La propietaria habilita **Permitir compras fiadas** y un límite en **Clientes → cliente → Editar**. En **Equipo** autoriza a los vendedores con **Permitir fiado**. Los permisos empiezan desactivados; los saldos e historiales existentes se conservan.
+- En **Cobrar → Fiado**, selecciona al cliente, escribe lo que paga ahora (puede ser cero) y su medio de pago. El sistema aplica primero cualquier saldo a favor disponible y registra el resto como deuda dentro del límite autorizado. El importe en efectivo es exacto en este flujo; si el cliente entrega un billete mayor, entrega su vuelto antes de confirmar.
+- **Clientes → Registrar abono** recibe pagos parciales o completos por efectivo, QR o tarjeta. Muestra la deuda restante, exige confirmar pagos digitales y genera un comprobante. Un exceso requiere confirmación y queda a favor. Los abonos no duplican ventas y pertenecen a la fecha y turno de recepción.
+- El resumen distingue **Cuentas por cobrar** de **Saldo a favor de clientes** y muestra abonos/recargas por medio de pago. El efectivo esperado incluye abonos en efectivo, excluye deudas y QR, y permanece congelado durante el arqueo.
+- Solo la propietaria carga **Deuda anterior**, con motivo, sin crear una venta ni entrada de dinero. Puede corregir abonos/recargas del turno actual con **Anular registro** y motivo; queda una contrapartida, nunca se borra el movimiento original. Los turnos cerrados se conservan. Si se anula una compra fiada del turno que ya recibió abonos, el dinero queda a favor del cliente; su devolución es una operación aparte.
+- En **Inventario**, abre un producto o insumo y elige **Archivar**. **Ver archivados** permite encontrarlos y restaurarlos. Un insumo se archiva/restaura entre turnos; para archivarlo debe tener stock cero y ninguna receta activa que lo utilice. Nombre, mínimo y tamaño de paquete se pueden corregir; cambiar la unidad se bloquea si tiene historial o recetas.
+
+### Saldos a favor existentes
 
 - **Vuelto guardado:** al cobrar en efectivo, si el cliente deja el vuelto, se marca **Guardar el vuelto como saldo a favor** y se elige o crea el cliente en el mismo cobro.
 - **Recarga:** el cliente deja dinero por adelantado (efectivo, QR o tarjeta) desde **Más → Clientes → Cargar saldo**. El cajero lo hace durante su turno.
-- **Pago con saldo:** medio de pago **Saldo**, o **Mixto** para combinar saldo con efectivo, QR o tarjeta. El saldo nunca queda negativo.
+- **Pago con saldo:** medio de pago **Saldo**, o **Mixto** para combinar saldo con efectivo, QR o tarjeta. Estos medios solo usan saldo disponible; la deuda requiere el flujo explícito **Fiado** y sus permisos.
 - **Devolver y ajustar:** solo el propietario, siempre con motivo. La devolución puede salir de la caja (turno abierto) o fuera de ella.
 - **Anular una venta** devuelve el saldo usado y retira el vuelto guardado; si el cliente ya gastó ese vuelto, la anulación se rechaza.
 - **Arqueo:** el efectivo esperado incluye las recargas en efectivo y los vueltos guardados del turno, y descuenta las devoluciones de caja. Las operaciones de saldo se pausan durante el arqueo.

@@ -43,3 +43,20 @@ test('a consistent backup works before migration 2 and records the actual schema
   assert.equal(backup.schemaVersion,'1');assert.equal(backup.tables.products.length,60);
   assert.equal('customers' in backup.tables,false);assert.equal('sessions' in backup.tables,false);
 });
+
+test('schema 6 is guarded, preserves existing credit and sales, and keeps customer tables private',async t=>{
+  const db=new PGlite();t.after(()=>db.close());const upgrade=await readFile(new URL('../supabase/migrations/20261017150819_customer_debts_and_archives.sql',import.meta.url),'utf8');
+  await db.exec(migrations[0]);await db.exec(migrations[1]);
+  await assert.rejects(db.exec(upgrade),/requiere el esquema 5/);await db.exec('ROLLBACK');
+  for(const migration of migrations.slice(2))await db.exec(migration);
+  await db.exec("INSERT INTO flamingo.users(id,name,username,password,role) VALUES(999,'Dueña','migration-test','not-a-password','admin'); INSERT INTO flamingo.customers(id,name,created_by,balance) VALUES(999,'Saldo existente',999,1234)");
+  await db.exec(upgrade);
+  assert.deepEqual((await db.query('SELECT balance,allow_fiado,credit_limit FROM flamingo.customers WHERE id=999')).rows[0],{balance:1234,allow_fiado:0,credit_limit:0});
+  assert.equal((await db.query("SELECT value FROM flamingo.settings WHERE key='schema_version'")).rows[0].value,'6');
+  await assert.rejects(db.exec(upgrade),/requiere el esquema 5/);await db.exec('ROLLBACK');
+  await db.exec('SET ROLE flamingo_app; UPDATE flamingo.customers SET balance=-100 WHERE id=999');
+  await assert.rejects(db.query('DELETE FROM flamingo.customers WHERE id=999'),/permission denied/);
+  await db.exec('RESET ROLE');
+  assert((await db.query("SELECT relrowsecurity FROM pg_class WHERE oid='flamingo.customers'::regclass")).rows[0].relrowsecurity);
+  await db.exec('CREATE ROLE schema6_public; SET ROLE schema6_public');await assert.rejects(db.query('SELECT * FROM flamingo.customers'),/permission denied/);
+});

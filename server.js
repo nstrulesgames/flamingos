@@ -124,6 +124,9 @@ export function createApp({ database = resolve(root, 'data/flamingo.sqlite'), de
                 return json(await store.stockMovement(user, body), 201);
             if (route === 'POST /api/inventory')
                 return json(await store.addInventory(user, body), 201);
+            const inventoryEdit=url.pathname.match(/^\/api\/inventory\/(\d+)$/),productEdit=url.pathname.match(/^\/api\/products\/(\d+)$/);
+            if(req.method==='PATCH'&&inventoryEdit)return json(await store.updateInventory(user,Number(inventoryEdit[1]),body));
+            if(req.method==='PATCH'&&productEdit)return json(await store.setProductActive(user,Number(productEdit[1]),body));
             if (route === 'POST /api/products')
                 return json(await store.saveProduct(user, body), 201);
             if (route === 'POST /api/me/password')

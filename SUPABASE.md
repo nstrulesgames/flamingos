@@ -65,3 +65,7 @@ El controlador carga la CA pública de Supabase desde `certs/supabase-ca.crt` pa
 El asesor de seguridad de Supabase no reportó problemas en las tablas nuevas. Detectó una advertencia del servicio Supabase Auth sobre [protección de contraseñas filtradas](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection); ese servicio no gestiona los usuarios de este POS.
 
 Referencias: [conexiones y pooler](https://supabase.com/docs/guides/database/connecting-to-postgres), [privacidad de datos](https://supabase.com/docs/guides/database/secure-data).
+
+## Esquema 6 · Fiado y abonos
+
+La versión actual requiere `20261017150819_customer_debts_and_archives.sql`, después del esquema 5. Ver `ACTUALIZACION-FIADO-2026-10-17.md`. La migración y el código deben publicarse de forma coordinada: preparar el despliegue sin promover, respaldar, migrar y promover inmediatamente. Conserva la credencial limitada de ejecución. No repitas las migraciones históricas.
