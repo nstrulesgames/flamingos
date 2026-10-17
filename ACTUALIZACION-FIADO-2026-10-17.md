@@ -21,3 +21,13 @@ Revisión móvil 390 × 844: compra de Açaí Bs 40, Bs 10 efectivo + Bs 30 fiad
 El conector de asesores de Supabase rechazó el acceso como en la actualización anterior. No se atribuye a esta versión un informe nuevo de asesores. La verificación de privacidad, permisos y conservación de datos se hará mediante SQL en el proyecto autorizado `oozvdybbdajbmfwikczt`, sin divulgar credenciales.
 
 Suite completa: **131/131 aprobadas**, `npm run check` y `git diff --check` correctos. Registro privado: `tmp/debts-all-tests-final.log`.
+
+## Publicación verificada
+
+Código `10d0170`. Despliegue preparado antes de migrar: `dpl_ELUxntSNWGTMp9szR61A9azRwa6C`, `flamingos-2yuowxsbd-nstrulesgames.vercel.app`, promovido a `https://flamingos-psi.vercel.app/`.
+
+Migración `20261017150819 customer_debts_and_archives` aplicada y registrada atómicamente en el proyecto autorizado. Respaldo privado consistente inmediatamente anterior: `data/backups/flamingo-postgres-before-debts-2026-10-17T15-31-12-386Z.json`, excluido de Git y Vercel. La verificación dentro de la transacción comparó todos los campos originales de todas las filas, conservando las 63 ventas, 163 movimientos y 6 clientes.
+
+Comprobación posterior con `flamingo_runtime_3f2d5f712650`: esquema 6, 74 productos, 66 insumos, 5 usuarios, 63 ventas y total histórico 55.250 centavos. Permanecieron los 163 movimientos y la suma de existencias 601.056. Las 20 tablas mantienen RLS y ni anon ni authenticated tienen acceso al esquema privado. La API pública respondió HTTP 200 con PostgreSQL y Google activos; los archivos publicados coinciden con el código probado. No se registraron operaciones ficticias en producción.
+
+El arqueo móvil de demostración confirmó Bs 110 esperados y contados, diferencia cero, con la deuda Bs 30 y el abono QR Bs 20 excluidos del efectivo. Se aprobaron los 29 insumos sin diferencias. Producto archivado encontrado en «Ver archivados» y restaurado desde el mismo flujo.
