@@ -128,3 +128,5 @@ h1,h2,h3{font-family:var(--font-ui);font-weight:650;letter-spacing:-.02em;line-h
 .team-actions{flex-wrap:wrap}
 .team-actions [data-toggle-fiado]{flex-basis:100%}
 @media print{.shell,.sale-dock,.mobile-nav,#order{display:none!important}.modal{position:static;width:80mm;max-width:none;max-height:none;margin:0;padding:4mm;box-shadow:none;border:0}}
+
+.product-stock-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px}.product-stock-card>div:first-child{min-width:0}.product-stock-card b{overflow-wrap:anywhere}.product-stock-actions{grid-column:1 / -1;display:flex;justify-content:flex-end;gap:8px}.product-stock-actions .secondary{min-height:44px}.product-stock-card strong{white-space:nowrap}
