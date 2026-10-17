@@ -41,3 +41,11 @@ La propietaria puede habilitar unidades de un producto posteriormente, entre tur
 Se conserva el esquema PostgreSQL **6**; no se requiere DDL nuevo. La adaptación usa campos existentes de productos, inventario, recetas, ajustes y auditoría. Se respaldó PostgreSQL antes de publicar.
 
 Pruebas: `npm run check` y **140 pruebas automatizadas**, incluyendo ambos adaptadores (SQLite y PostgreSQL con rol limitado), creación sin ingredientes, reposición, venta y descuento, prevención de cambios de control/archivado durante un turno, conservación de cantidades al cambiar control y archivar/restaurar, conversión aplazada hasta cerrar el turno y aislamiento de ingredientes compartidos. Revisión visual en celular de creación y reposición en una base de demostración separada.
+
+## Publicación verificada
+
+Código `e97c13f`, publicado en GitHub y Vercel: `dpl_Ga8zLpzztaQtfZyJHKb2XbFDQbAe`, estado Ready, dominio `https://flamingos-psi.vercel.app/`. La API respondió HTTP 200 con PostgreSQL y Google activos; los archivos públicos comprobados coinciden con el código probado. La revisión móvil 390 × 844 no mostró errores de consola. Captura de demostración en `output/productos-2026-10-17/productos-celular.jpg`.
+
+Respaldo privado anterior al despliegue: `data/backups/flamingo-postgres-2026-10-17T20-34-06-536Z.json`, excluido de Git y Vercel. La comparación posterior verificó sin cambios las 14 tablas de usuarios, ventas, movimientos, clientes, turnos y arqueos, además de todas las cantidades y los demás datos de productos.
+
+**La adaptación de datos queda aplazada:** al publicar estaba abierto el turno #4. Se conservaron sus 50 registros activos y su historial; la adaptación a 33 registros de productos se ejecutará automáticamente al aprobar su cierre. No se cerró ni modificó el turno real para probar. Los casos de aplicación inmediata, espera, cierre y siguiente turno se verificaron en bases aisladas con SQLite y PostgreSQL.
