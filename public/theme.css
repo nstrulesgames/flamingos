@@ -152,7 +152,7 @@ input[type="checkbox"] { accent-color:var(--red); }
 .product-bottom .add-product { width:32px; height:32px; border-radius:50%; background:var(--red); color:var(--primary-ink); }
 .selected .add-product,.selected-qty { background:var(--red); color:var(--primary-ink); }
 .stock-pill,.recipe-pill { background:var(--warning-bg); color:var(--warning-ink); }
-.stock-pill.sold-out { background:var(--danger-bg); color:var(--danger-ink); }
+.stock-pill.sold-out { background:var(--warning-bg); color:var(--warning-ink); }
 .needs-recipe { background:var(--surface); }
 .sale-dock { background:var(--glass); border-color:var(--glass-edge); border-radius:18px; box-shadow:var(--dock-shadow); }
 .mobile-cart,.mobile-cart strong { color:var(--ink); }

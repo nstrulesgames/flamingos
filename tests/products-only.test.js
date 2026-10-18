@@ -7,7 +7,7 @@ import {randomUUID} from 'node:crypto';
 import {PGlite} from '@electric-sql/pglite';
 import {createStore} from '../lib/store.js';
 import {createPostgresStore} from '../lib/postgres-store.js';
-import {productsOnlyPlan} from '../lib/product-stock.js';
+import {productStockItem} from '../lib/product-stock.js';
 import {uiHarness} from './helpers/ui-harness.js';
 
 async function fixture(t,backend){
@@ -56,20 +56,19 @@ for(const backend of ['SQLite','PostgreSQL']){
   await store.setProductActive(owner,p.id,{active:false});assert.equal((await store.snapshot(owner)).archivedInventory.find(i=>i.id===stockId).stock,8);
   await store.setProductActive(owner,p.id,{active:true});assert.equal((await store.snapshot(owner)).inventory.find(i=>i.id===stockId).stock,8);
  });
- test(`${backend}: existing shift keeps its old count; afterwards only finished products remain active`,async t=>{
+ test(`${backend}: startup and shift approval preserve owner stock links and measured quantities`,async t=>{
   const f=await fixture(t,backend),{store,owner,worker}=f;
-  const raw=await store.addInventory(owner,{name:'Mezcla anterior',unit:'g',minimum:0});await store.stockMovement(owner,{itemId:raw.id,kind:'restock',quantity:100,note:'Existencias anteriores'});
-  const state=await store.snapshot(owner),coffee=state.products.find(p=>p.name==='Café americano'),beforeStocks=state.inventory.map(i=>[i.id,i.stock]);
+  const raw=await store.addInventory(owner,{name:'Porciones configuradas',unit:'g',minimum:0});await store.stockMovement(owner,{itemId:raw.id,kind:'restock',quantity:100,note:'Existencias anteriores'});
+  const state=await store.snapshot(owner),coffee=state.products.find(p=>p.name==='Café americano');
   await store.saveProduct(owner,{...coffee,inventoryMode:'recipe',recipe:[{item_id:raw.id,quantity:15}]});
-  await f.query("UPDATE flamingo.settings SET value='0' WHERE key='products_only_version'".replace(backend==='SQLite'?'flamingo.':'',''));
-  await f.open(store);const updated=await f.reopen(),pending=await updated.snapshot(owner);assert.equal(pending.productsOnlyPending,true);assert.deepEqual(pending.inventory.map(i=>[i.id,i.stock]),beforeStocks);
-  // The existing declaration is still complete and can close, without changing its expected quantities.
-  await f.close(updated);const simplified=await updated.snapshot(owner);assert.equal(simplified.productsOnlyPending,false);assert.equal(simplified.products.find(p=>p.id===coffee.id).stock_mode,'untracked');
-  assert(!simplified.inventory.some(i=>i.id===raw.id));assert.equal(simplified.archivedInventory.find(i=>i.id===raw.id).stock,100);
-  const all=[...simplified.inventory,...simplified.archivedInventory];for(const [id,stock] of beforeStocks)assert.equal(all.find(i=>i.id===id).stock,stock);
-  await f.open(updated);const next=await updated.snapshot(owner);assert(!next.inventory.some(i=>i.id===raw.id));
-  await updated.sale(worker,{requestId:randomUUID(),items:[{id:coffee.id,quantity:1}],cash:coffee.price,tendered:coffee.price,service:'local'});
-  assert.equal((await updated.snapshot(owner)).archivedInventory.find(i=>i.id===raw.id).stock,100);
+  await f.query("INSERT INTO flamingo.settings(key,value) VALUES('products_only_version','0') ON CONFLICT(key) DO UPDATE SET value='0'".replace(backend==='SQLite'?'flamingo.':'',''));
+  const before=await store.snapshot(owner),beforeStocks=before.inventory.map(i=>[i.id,i.stock]);
+  await f.open(store);const updated=await f.reopen(),pending=await updated.snapshot(owner);assert.equal(pending.productsOnlyPending,false);assert.deepEqual(pending.inventory.map(i=>[i.id,i.stock]),beforeStocks);
+  await assert.rejects(async()=>updated.saveProduct(owner,{...coffee,inventoryMode:'recipe',recipe:[{item_id:raw.id,quantity:1}]}),/entre turnos/);
+  await f.close(updated);const kept=await updated.snapshot(owner);assert.equal(kept.products.find(p=>p.id===coffee.id).stock_mode,'linked');
+  assert.deepEqual(kept.inventory.map(i=>[i.id,i.stock]),beforeStocks);assert(kept.inventory.some(i=>i.id===raw.id));
+  await f.open(updated);await updated.sale(worker,{requestId:randomUUID(),items:[{id:coffee.id,quantity:1}],cash:coffee.price,tendered:coffee.price,service:'local'});
+  assert.equal((await updated.snapshot(owner)).inventory.find(i=>i.id===raw.id).stock,85);
  });
  test(`${backend}: a new unit product during an open shift enters its count at zero`,async t=>{
   const f=await fixture(t,backend);await f.open(f.store);const p=await f.store.saveProduct(f.owner,{name:'Nuevo durante el turno',category:'Comida',price:100,inventoryMode:'unit'});
@@ -78,9 +77,9 @@ for(const backend of ['SQLite','PostgreSQL']){
  });
 }
 
-test('shared or measured ingredients never become duplicated finished-product units',()=>{
- const products=[{id:1,name:'Bebida',active:1,inventory_mode:'recipe'},{id:2,name:'Preparado A',active:1,inventory_mode:'recipe'},{id:3,name:'Preparado B',active:1,inventory_mode:'recipe'}],recipes=[{product_id:1,item_id:10,quantity:1},{product_id:2,item_id:20,quantity:1},{product_id:3,item_id:20,quantity:1}],inventory=[{id:10,unit:'ud',active:1,stock:12},{id:20,unit:'ud',active:1,stock:100},{id:30,unit:'g',active:1,stock:500}];
- const plan=productsOnlyPlan(products,recipes,inventory);assert.deepEqual(plan.tracked.map(v=>v.item.id),[10]);assert.deepEqual(plan.salesOnly.map(v=>v.product.id),[2,3]);assert.deepEqual(plan.retire.map(v=>v.id),[20,30]);
+test('a shared stock is not mistaken for individual product units',()=>{
+ const products=[{id:1,active:1,inventory_mode:'recipe'},{id:2,active:1,inventory_mode:'recipe'}],recipes=[{product_id:1,item_id:20,quantity:1},{product_id:2,item_id:20,quantity:1}],inventory=[{id:20,unit:'ud',active:1,stock:100}];
+ assert.equal(productStockItem(products[0],products,recipes,inventory),null);assert.equal(productStockItem(products[1],products,recipes,inventory),null);assert.equal(inventory[0].stock,100);
 });
 
 test('the product form sends units and package configuration without recipe inputs',async()=>{

@@ -82,11 +82,11 @@ Se aplica una sola vez, nunca con un turno abierto: al iniciar el servidor entre
 - Los productos que ya existían conservan precio, nombre y recetas editadas por la propietaria. Solo cambian los que seguían pendientes de receta.
 - Las ventas, comprobantes y arqueos anteriores no cambian.
 
-## Simplificación a productos · 17 de octubre de 2026
+## Control configurado por la propietaria · corrección del 17 de octubre
 
-La operación usa únicamente productos terminados. Los ingredientes anteriores se archivan con sus cantidades e historial intactos y dejan de aparecer en la recepción y el arqueo. Los productos con un stock propio de una unidad conservan ese stock. Cafés, batidos, hamburguesa express y Açaí quedan en **Solo registrar ventas**; otros preparados con ingredientes compartidos o medidos también quedan sin conteo para no inventar cantidades de productos terminados.
+Los valores por defecto del menú solo se usan al crearlo. La configuración posterior de la propietaria se conserva: hamburguesas por unidad, seis cafés con un saldo compartido de medidas, dos batidos con porciones compartidas y dos tés con un saldo común. Más → Productos permite revisar sus vínculos sin convertirlos en stock individual ni desactivar su control.
 
-La adaptación se registra en auditoría una sola vez. Si hay un turno abierto, conserva su inventario hasta aprobar su arqueo; el siguiente turno recibe el inventario simplificado. No cambia precios, ventas, saldos de clientes, cantidades ni arqueos cerrados. La propietaria puede habilitar unidades posteriormente por producto entre turnos.
+Se retiró la adaptación automática que cambiaba esos controles y archivaba existencias. La recuperación documentada en `RECUPERACION-STOCK-2026-10-17.md` restaura los vínculos anteriores y las 17 existencias archivadas conservando todas las cantidades del último cierre aprobado. Sandwich de lomito vuelve como existencia independiente con sus 10 unidades, sin inventar un precio ni crear una venta nueva.
 
 ## Helado de Açaí y precio libre
 

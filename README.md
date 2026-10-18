@@ -22,10 +22,10 @@ El catálogo, el pedido, los pagos, el inventario, los historiales y el resumen 
 Los precios proceden de las dos fotos del cliente; la versión 2 del menú simplifica el control según la propietaria. Ver `MENU.md`. Las existencias de demostración son ficticias; la configuración real comienza con saldo cero.
 
 - Todo se controla por unidad, sin recetas ni litros. Bolos con un stock por tipo (agua, leche, fruta); escarchas por vaso (250, 300 y 500 ml).
-- Hamburguesa express, cafés, batidos y Helado de Açaí solo registran la venta.
+- La configuración de la propietaria prevalece: hamburguesa express descuenta su stock; cafés, té y batidos descuentan sus porciones compartidas. Helado de Açaí mantiene precio libre y solo ventas.
 - Los vasos se reponen por paquete completo (100 o 50). El cajero repone durante su turno; solo la propietaria registra mermas.
-- **Más → Productos** reúne precio, cantidad y reposición. Un producto se configura con **Contar unidades de este producto** o **Solo registrar ventas**, sin crear insumos ni recetas. Crear un producto con unidades inicia su stock en cero; luego se ingresa con **Reponer**.
-- La actualización del 17/10/2026 archiva los ingredientes anteriores con sus cantidades e historial intactos. Se aplica una sola vez entre turnos; si hay uno abierto, espera la aprobación de su arqueo. Ver `ACTUALIZACION-PRODUCTOS-2026-10-17.md`.
+- **Más → Productos** reúne precio, cantidad y reposición. Un producto puede contar unidades propias, descontar de existencias asociadas o solo registrar ventas. Las existencias compartidas y adicionales se consultan en la misma pantalla y se cuentan una sola vez en el arqueo. **Agotados** filtra los productos sin disponibilidad; en caja muestran un icono discreto y su venta se bloquea también en el servidor.
+- La corrección del 17/10/2026 retira la conversión automática que archivaba existencias y cambiaba controles personalizados. Recupera vínculos y registros originales preservando las cantidades aprobadas por Natalia y todo el historial. Ver `RECUPERACION-STOCK-2026-10-17.md`.
 
 ## Iniciar
 

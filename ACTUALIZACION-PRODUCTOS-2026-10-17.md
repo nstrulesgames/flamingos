@@ -1,5 +1,7 @@
 # Inventario por productos · 17 de octubre de 2026
 
+> **Documento histórico.** La adaptación descrita aquí fue sustituida por `RECUPERACION-STOCK-2026-10-17.md`: se retiró el cambio automático de controles y se recuperó la configuración personalizada con sus cantidades aprobadas.
+
 La operación del negocio utiliza productos terminados. Esta actualización reúne precio, cantidad y reposición en **Más → Productos**, sin pedir ingredientes ni recetas.
 
 ## Para la propietaria
