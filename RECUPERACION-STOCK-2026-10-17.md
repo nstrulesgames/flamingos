@@ -37,3 +37,13 @@ Se retiró por completo la conversión automática de controles en SQLite y Post
 No requiere cambios de esquema ni nuevos permisos: PostgreSQL permanece en versión 6. El plan usa los identificadores originales y rechaza cualquier discrepancia que requiera revisión.
 
 Pruebas específicas: recuperación idempotente, rollback completo ante un fallo intermedio, bloqueo con turno abierto, precisión de microsegundos en auditoría, preservación del historial, descuento de saldos compartidos, reserva de carrito, bloqueo por agotado y conservación del vínculo al guardar precios. La suite completa y las comprobaciones de sintaxis se ejecutan antes de publicar. Las pruebas visuales usan una base de demostración aislada.
+
+## Resultado verificado
+
+Código `44b7c2a`, publicado en GitHub y en `https://flamingos-psi.vercel.app/`. La API responde HTTP 200 con PostgreSQL y Google activos. Los archivos `app.js`, `mobile.css`, `theme.css` y `reconciliation.js` publicados coinciden con los archivos probados.
+
+Respaldo consistente previo: `data/backups/flamingo-postgres-2026-10-18T03-03-37-078Z.json` (fecha del archivo en UTC), privado y excluido de Git/Vercel. La recuperación se aplicó entre turnos al proyecto autorizado `oozvdybbdajbmfwikczt` y restauró **11 controles y 17 existencias**. Quedaron **50 existencias activas y 44 productos con descuento de stock**. Sandwich de lomito conservó su identificador 47 y sus 10 unidades.
+
+La comparación posterior contra el respaldo confirmó sin cambios las catorce tablas de negocio, todos los campos de inventario excepto su indicador activo y todos los campos de productos excepto su modo de descuento. Los vínculos recuperados coinciden exactamente con la auditoría anterior. Las **50 cantidades del cierre #4 aprobado por Natalia siguen coincidiendo con el stock actual**. Las veinte tablas conservan RLS y los roles `anon` y `authenticated` siguen sin acceso al esquema privado. No se registraron operaciones de prueba en producción.
+
+**143/143 pruebas aprobadas**, `npm run check` y `git diff --check` correctos. Revisión visual 390 × 844 en claro y oscuro: agotados, búsqueda del lomito, edición y guardado de café con el mismo saldo compartido y acceso a merma sin registrarla. Sin errores de consola ni desbordamiento horizontal. Capturas de demostración en `output/recuperacion-stock-2026-10-17/`.
