@@ -21,6 +21,7 @@ export function uiHarness({state=snapshot(),view='pos',storageBlocked=false}={})
   const context=createContext({document,window:{scrollTo:()=>{}},Event,crypto:webcrypto,setInterval:handler=>ticks.push(handler),
     setTimeout:()=>0,clearTimeout:()=>{},maximumQuantity,menuGroups,servingPrice,weightBasisLabel,cartLineKey,
     createReconciliationUI:()=>({submit:async()=>false,click:async()=>false}),
+    createProductHistoryUI:()=>({click:async()=>false,submit:async()=>false,reset:()=>{}}),
     createCustomersUI:()=>({submit:async()=>false,click:async()=>false,salePayload:v=>({customerId:Number(v.customerId)}),hasPending:()=>false,reset:()=>{},recover:()=>{}}),
     FormData:class{constructor(form){return new Map(form.fields);}},
     localStorage:{getItem:key=>storage.get(key)||null,

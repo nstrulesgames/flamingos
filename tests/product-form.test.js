@@ -12,7 +12,7 @@ test('editing a prepared product submits sales-only mode even when a hidden inpu
   const listeners={},requests=[],errors={textContent:'',hidden:true};let closed=0,refreshed=0;
   const context=createContext({
     document:{querySelector:s=>s==='.form-error'?errors:null,addEventListener:(name,handler)=>{listeners[name]=handler;}},
-    setInterval:()=>{},createReconciliationUI:()=>({submit:async()=>false}),createCustomersUI:()=>({submit:async()=>false,click:async()=>false}),
+    setInterval:()=>{},createReconciliationUI:()=>({submit:async()=>false}),createCustomersUI:()=>({submit:async()=>false,click:async()=>false}),createProductHistoryUI:()=>({submit:async()=>false,click:async()=>false,reset:()=>{}}),
     FormData:class{constructor(form){return new Map(form.fields);}},
     testApi:async(path,body)=>{requests.push({path,body});},
     testClose:()=>{closed++;},testRefresh:async()=>{refreshed++;},testToast:()=>{}

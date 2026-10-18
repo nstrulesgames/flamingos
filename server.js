@@ -19,7 +19,7 @@ export function createApp({ database = resolve(root, 'data/flamingo.sqlite'), de
             const url = new URL(req.url, 'http://localhost');
             if (!url.pathname.startsWith('/api/')) {
                 assert(req.method === 'GET' || req.method === 'HEAD', 'Método no permitido.', 405);
-                const files = { '/': 'index.html', '/app.js': 'app.js', '/catalog.js': 'catalog.js', '/pricing.js': 'pricing.js', '/reconciliation.js': 'reconciliation.js', '/customers.js': 'customers.js', '/style.css': 'style.css', '/reconciliation.css': 'reconciliation.css', '/glass.css': 'glass.css', '/mobile.css': 'mobile.css', '/theme.js': 'theme.js', '/theme.css': 'theme.css', '/menu-art.svg': 'menu-art.svg', '/art.svg': 'art.svg', '/logo.png': 'logo.png', '/manifest.webmanifest': 'manifest.webmanifest', '/icon.svg': 'icon.svg' };
+                const files = { '/': 'index.html', '/app.js': 'app.js', '/catalog.js': 'catalog.js', '/pricing.js': 'pricing.js', '/reconciliation.js': 'reconciliation.js', '/customers.js': 'customers.js', '/product-history.js':'product-history.js', '/style.css': 'style.css', '/reconciliation.css': 'reconciliation.css', '/glass.css': 'glass.css', '/mobile.css': 'mobile.css', '/theme.js': 'theme.js', '/theme.css': 'theme.css', '/menu-art.svg': 'menu-art.svg', '/art.svg': 'art.svg', '/logo.png': 'logo.png', '/manifest.webmanifest': 'manifest.webmanifest', '/icon.svg': 'icon.svg' };
                 const file = files[url.pathname];
                 assert(file, 'Archivo no encontrado.', 404);
                 const content = await readFile(resolve(root, 'public', file));
@@ -135,7 +135,9 @@ export function createApp({ database = resolve(root, 'data/flamingo.sqlite'), de
                 return json(await store.createUser(user, body), 201);
             if (route === 'GET /api/report')
                 return json(await store.report(user, url.searchParams.get('from') || '', url.searchParams.get('to') || ''));
-            let match = url.pathname.match(/^\/api\/sales\/(\d+)(\/void)?$/);
+            let match = url.pathname.match(/^\/api\/(products|inventory)\/(\d+)\/history$/);
+            if(match&&req.method==='GET')return json(await store[match[1]==='products'?'productHistory':'inventoryHistory'](user,Number(match[2]),Object.fromEntries(['from','to','salesPage','stockPage'].map(key=>[key,url.searchParams.get(key)||undefined]))));
+            match = url.pathname.match(/^\/api\/sales\/(\d+)(\/void)?$/);
             if (match && req.method === 'GET' && !match[2])
                 return json(await store.receipt(user, Number(match[1])));
             if (match && req.method === 'POST' && match[2])
